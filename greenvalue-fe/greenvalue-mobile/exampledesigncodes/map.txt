@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GreenValue AI Map Explorer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#00f5c0",
+                        "deep-emerald": "#005f4b",
+                        "premium-gold": "#D4AF37",
+                        "background-light": "#f5f8f8",
+                        "background-dark": "#0f231f",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="relative flex h-screen w-full flex-col overflow-hidden mx-auto max-w-[430px] shadow-2xl bg-white dark:bg-background-dark">
+<!-- Full Screen Map Background -->
+<div class="absolute inset-0 z-0 bg-cover bg-center" data-alt="Light colored architectural style map of a city" data-location="San Francisco" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB8P_1DpEgMnt7uJ48jvAnhv8n9FKf5Y5wpHd5k2dUkU0RMQvThmUGRPVrvdJyE2Ia8uOjapaFOG8yWNQs-o1WJAjVI8FWzHHYVjaKFxhi-R4U3AQRJWpYLRBDWYyfgYXP8LzByMDByU1AEyTUPo_mLMSR4Dpik5-BgRzMEKqbb2wQe-AxS3gwGOUbKBkfu4tbnqYwWNu2UHp0k9VUoGCPT9OznuRJrzSZnllRu0ZUyehRAUo3kQQZg9JbqR2bdooQS7MF5u8vkp6o');">
+<!-- Map Markers / Pins -->
+<!-- Emerald Pin 1 -->
+<div class="absolute top-[35%] left-[25%] flex flex-col items-center">
+<div class="bg-deep-emerald text-white px-2 py-1 rounded-lg text-xs font-bold shadow-lg border border-white/20">
+                    $450k
+                </div>
+<div class="w-2 h-2 bg-deep-emerald rotate-45 -mt-1 shadow-lg"></div>
+</div>
+<!-- Gold Pin (Premium) -->
+<div class="absolute top-[42%] left-[60%] flex flex-col items-center scale-110">
+<div class="bg-premium-gold text-white px-2 py-1 rounded-lg text-xs font-bold shadow-lg border border-white/20">
+                    $1.2M
+                </div>
+<div class="w-2 h-2 bg-premium-gold rotate-45 -mt-1 shadow-lg"></div>
+</div>
+<!-- Emerald Pin 2 (Selected) -->
+<div class="absolute top-[55%] left-[45%] flex flex-col items-center z-10">
+<div class="bg-primary text-deep-emerald px-3 py-1.5 rounded-lg text-sm font-bold shadow-xl border-2 border-white ring-4 ring-primary/30">
+                    $620k
+                </div>
+<div class="w-3 h-3 bg-primary rotate-45 -mt-1.5 shadow-xl border-r-2 border-b-2 border-white"></div>
+</div>
+<!-- Emerald Pin 3 -->
+<div class="absolute top-[20%] left-[75%] flex flex-col items-center opacity-80">
+<div class="bg-deep-emerald text-white px-2 py-1 rounded-lg text-xs font-bold shadow-lg">
+                    $380k
+                </div>
+<div class="w-2 h-2 bg-deep-emerald rotate-45 -mt-1 shadow-lg"></div>
+</div>
+</div>
+<!-- Top UI Overlays -->
+<div class="relative z-10 px-4 pt-12 pb-4 pointer-events-none">
+<!-- Search Bar -->
+<div class="pointer-events-auto flex w-full items-center bg-white/95 dark:bg-background-dark/95 backdrop-blur-md rounded-xl h-12 px-4 shadow-lg border border-slate-200 dark:border-slate-800">
+<span class="material-symbols-outlined text-slate-400 mr-2">search</span>
+<input class="flex-1 border-none bg-transparent focus:ring-0 text-sm font-normal placeholder:text-slate-400 dark:placeholder:text-slate-500" placeholder="Search address or area" type="text"/>
+<span class="material-symbols-outlined text-slate-400">mic</span>
+</div>
+<!-- Filter Chips -->
+<div class="pointer-events-auto flex gap-2 mt-4 overflow-x-auto no-scrollbar pb-2">
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-1 rounded-full bg-primary text-deep-emerald px-4 shadow-sm font-semibold text-sm">
+                    Price Range
+                    <span class="material-symbols-outlined text-lg">keyboard_arrow_down</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-1 rounded-full bg-white/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 px-4 shadow-sm font-medium text-sm border border-slate-200 dark:border-slate-700">
+                    Energy Label
+                    <span class="material-symbols-outlined text-lg">keyboard_arrow_down</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-1 rounded-full bg-white/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 px-4 shadow-sm font-medium text-sm border border-slate-200 dark:border-slate-700">
+                    ROI %
+                    <span class="material-symbols-outlined text-lg">keyboard_arrow_down</span>
+</button>
+</div>
+</div>
+<!-- Right Side Map Controls -->
+<div class="absolute right-4 top-[35%] z-10 flex flex-col gap-2 pointer-events-auto">
+<button class="flex size-10 items-center justify-center rounded-xl bg-white dark:bg-slate-800 shadow-lg text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+<span class="material-symbols-outlined">layers</span>
+</button>
+<div class="flex flex-col rounded-xl bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+<button class="flex size-10 items-center justify-center text-slate-700 dark:text-slate-200 border-b border-slate-100 dark:border-slate-700">
+<span class="material-symbols-outlined">add</span>
+</button>
+<button class="flex size-10 items-center justify-center text-slate-700 dark:text-slate-200">
+<span class="material-symbols-outlined">remove</span>
+</button>
+</div>
+<button class="flex size-10 items-center justify-center rounded-xl bg-white dark:bg-slate-800 shadow-lg text-primary border border-slate-200 dark:border-slate-700">
+<span class="material-symbols-outlined material-symbols-fill">near_me</span>
+</button>
+</div>
+<!-- Bottom UI Card (Property Preview) -->
+<div class="mt-auto relative z-10 px-4 pb-6">
+<div class="bg-white dark:bg-slate-900 rounded-xl shadow-[0_-8px_24px_rgba(0,0,0,0.1)] p-4 border border-slate-100 dark:border-slate-800">
+<div class="flex gap-4">
+<div class="relative w-28 h-28 rounded-lg overflow-hidden shrink-0 bg-slate-100 dark:bg-slate-800">
+<img alt="Suburban House Thumbnail" class="w-full h-full object-cover" data-alt="Modern suburban house with solar panels" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxC30n4ExNx1e3DjANmtskO3xCAWuHlrBSK3ZrSdrOACymG_wQoR3NeDkcZkjcIpV9okfJJT0WJ2ahmfTSqq-jYS-_nZW7P71SGekxAWnvzp-wk4uQ-tbRPKgETsfis0V-ifhYQ9ba-sllc1QAmdsXpp770Wmep02F9wAHlWgjFn1Ouk_kcRKaAmiSwH4kFFsSq3o_grsKbmTjzN_D30NmV7yweAR17ungGkM2-51dxeArmYb5WCH-sTurzCSsQkiWlD6TlTKc86s"/>
+<div class="absolute top-2 left-2 bg-primary text-deep-emerald text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                            A+ RATING
+                        </div>
+</div>
+<div class="flex flex-col justify-between flex-1 py-1">
+<div>
+<div class="flex justify-between items-start">
+<h3 class="font-bold text-lg leading-tight">24 Greenview St.</h3>
+<button class="text-slate-400 hover:text-red-500">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Oakwood District, San Francisco</p>
+</div>
+<div class="flex items-end justify-between">
+<div>
+<p class="text-slate-400 dark:text-slate-500 text-[10px] uppercase font-semibold tracking-wider">Estimated Value</p>
+<p class="text-xl font-bold text-deep-emerald dark:text-primary">$620,000</p>
+</div>
+<button class="flex items-center justify-center bg-background-light dark:bg-slate-800 size-9 rounded-lg text-deep-emerald dark:text-primary transition-colors">
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+<div class="flex flex-col items-center">
+<span class="text-[10px] text-slate-400 font-medium uppercase">ROI %</span>
+<span class="text-sm font-bold text-slate-700 dark:text-slate-200">8.4%</span>
+</div>
+<div class="flex flex-col items-center border-x border-slate-100 dark:border-slate-800">
+<span class="text-[10px] text-slate-400 font-medium uppercase">Savings</span>
+<span class="text-sm font-bold text-slate-700 dark:text-slate-200">$1.2k/yr</span>
+</div>
+<div class="flex flex-col items-center">
+<span class="text-[10px] text-slate-400 font-medium uppercase">Type</span>
+<span class="text-sm font-bold text-slate-700 dark:text-slate-200">Family</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Navigation -->
+<div class="relative z-20 flex w-full items-center justify-between bg-white/95 dark:bg-background-dark/95 backdrop-blur-md px-6 pt-3 pb-8 border-t border-slate-100 dark:border-slate-800">
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined material-symbols-fill">map</span>
+<span class="text-[10px] font-bold">Map</span>
+<div class="w-1 h-1 bg-primary rounded-full"></div>
+</a>
+<div class="flex flex-col items-center -mt-8">
+<button class="bg-deep-emerald text-primary size-14 rounded-full shadow-lg flex items-center justify-center border-4 border-white dark:border-background-dark">
+<span class="material-symbols-outlined text-3xl">qr_code_scanner</span>
+</button>
+<span class="text-[10px] font-medium text-slate-400 mt-1">Scan</span>
+</div>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">assessment</span>
+<span class="text-[10px] font-medium">Reports</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="text-[10px] font-medium">Profile</span>
+</a>
+</div>
+<!-- iOS Home Indicator -->
+<div class="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full z-30"></div>
+</div>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</body></html>

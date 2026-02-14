@@ -1,0 +1,191 @@
+// ============================================================
+// GreenValue AI — Prisma Schema
+// PostgreSQL + PostGIS
+// ============================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [postgis, uuidOssp(map: "uuid-ossp")]
+}
+
+// ── Enums ───────────────────────────────────────────────────
+
+enum Role {
+  OWNER      // Ev Sahibi
+  CONTRACTOR // Müteahhit / Usta
+  ADMIN      // Sistem Yöneticisi
+}
+
+enum AnalysisStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum EnergyLabel {
+  A_PLUS // A+
+  A
+  B
+  C
+  D
+  E
+  F
+  G
+}
+
+enum ReportFormat {
+  PDF
+  JSON
+}
+
+// ── Users ───────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String   // bcrypt hash
+  fullName  String?
+  phone     String?
+  avatar    String?
+  role      Role     @default(OWNER)
+  isActive  Boolean  @default(true)
+  lastLogin DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  properties Property[]
+  analyses   Analysis[]
+  reports    Report[]
+  auditLogs  AuditLog[]
+
+  @@map("users")
+}
+
+// ── Properties ──────────────────────────────────────────────
+
+model Property {
+  id            String   @id @default(uuid())
+  title         String
+  address       String
+  city          String
+  district      String?
+  postalCode    String?
+  latitude      Float?
+  longitude     Float?
+  buildingYear  Int?
+  buildingType  String?  // apartment, detached, semi-detached, villa
+  floorArea     Float?   // m²
+  floors        Int?
+  units         Int?     // Number of flats/units
+  description   String?
+  thumbnailKey  String?  // MinIO key for property thumbnail
+
+  ownerId   String
+  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  analyses  Analysis[]
+  reports   Report[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([city])
+  @@map("properties")
+}
+
+// ── Analyses ────────────────────────────────────────────────
+
+model Analysis {
+  id             String         @id @default(uuid())
+  jobId          String         @unique  // BullMQ job ID
+  status         AnalysisStatus @default(PENDING)
+  imageKey       String         // MinIO key for source image
+  heatmapKey     String?        // MinIO key for heatmap overlay
+
+  // Inference results (JSON)
+  detections     Json?          // Array of detected components
+  inferenceTimeMs Float?
+
+  // Physics results
+  overallUValue  Float?
+  energyLabel    EnergyLabel?
+  components     Json?          // Array of component U-Value details
+  renovations    Json?          // Renovation suggestions
+
+  // Pipeline metadata
+  modelVersion   String?
+  device         String?
+  pipelineTimeMs Float?
+  errorMessage   String?
+
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  report     Report?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([propertyId])
+  @@index([userId])
+  @@index([status])
+  @@map("analyses")
+}
+
+// ── Reports ─────────────────────────────────────────────────
+
+model Report {
+  id         String       @id @default(uuid())
+  format     ReportFormat @default(PDF)
+  fileKey    String       // MinIO key for generated report
+  fileSize   Int?         // bytes
+  title      String?
+
+  analysisId String   @unique
+  analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@map("reports")
+}
+
+// ── Audit Log ───────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String   // e.g. "analysis.created", "report.downloaded"
+  entity    String   // e.g. "Analysis", "Property"
+  entityId  String?
+  metadata  Json?    // Extra context
+  ip        String?
+  userAgent String?
+
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

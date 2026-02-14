@@ -1,0 +1,17 @@
+{
+  "collections": [
+    {
+      "name": "property_embeddings",
+      "vectors": {
+        "size": 512,
+        "distance": "Cosine"
+      },
+      "payload_schema": {
+        "property_id": "keyword",
+        "energy_label": "keyword",
+        "city": "keyword",
+        "building_type": "keyword"
+      }
+    }
+  ]
+}

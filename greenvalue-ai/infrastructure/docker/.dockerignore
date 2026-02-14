@@ -1,0 +1,78 @@
+# ============================================================
+# GreenValue AI Engine - Docker Ignore
+# ============================================================
+
+# Python cache & bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments (deps are in Docker image)
+.venv/
+venv/
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Data & Logs (mounted as volumes, not baked into image)
+data/
+logs/
+*.log
+*.db
+
+# YOLO weights (downloaded at runtime, cached in volume)
+*.pt
+*.onnx
+*.engine
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+tests/
+
+# Git
+.git/
+.gitignore
+
+# Docker files (don't copy Docker config into the image)
+infrastructure/docker/
+docker-compose*.yml
+
+# Documentation
+docs/
+
+# Temporary files
+*.tmp
+*.bak
+tmp/
+temp/
+
+# Environment files (secrets - never bake into image)
+.env
+.env.*
+!.env.example
+
+# Jupyter notebooks (dev only)
+*.ipynb
+.ipynb_checkpoints/
+
+# MLflow local artifacts
+mlruns/
+mlartifacts/
+tmp/

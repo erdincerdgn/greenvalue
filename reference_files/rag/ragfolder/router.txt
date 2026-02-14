@@ -1,0 +1,144 @@
+"""
+Semantic Router and Adaptive RAG Strategy
+Author: GreenValue AI Team
+Purpose: Route queries to optimal RAG strategy based on type and complexity.
+"""
+
+from typing import Dict
+from enum import Enum
+
+from .config import QueryType, QueryComplexity
+
+
+class SemanticRouter:
+    """
+    Classify queries for optimal routing.
+    
+    Query types:
+    - VALUATION: Property value, pricing, appraisal
+    - SUSTAINABILITY: Green building, carbon, eco
+    - ENERGY: Insulation, HVAC, solar
+    - GENERAL: Greetings, help, general questions
+    """
+    
+    VALUATION_KEYWORDS = [
+        "value", "price", "worth", "appraisal", "assess",
+        "market", "roi", "investment", "cost", "estimate"
+    ]
+    
+    SUSTAINABILITY_KEYWORDS = [
+        "sustainable", "green", "eco", "carbon", "environmental",
+        "leed", "certification", "footprint", "renewable"
+    ]
+    
+    ENERGY_KEYWORDS = [
+        "energy", "insulation", "u-value", "thermal", "hvac",
+        "solar", "efficiency", "heating", "cooling", "window"
+    ]
+    
+    GENERAL_KEYWORDS = [
+        "hello", "hi", "help", "what is", "how do", "tell me"
+    ]
+    
+    @classmethod
+    def classify(cls, query: str) -> str:
+        """Classify query type."""
+        q = query.lower()
+        
+        if any(kw in q for kw in cls.GENERAL_KEYWORDS):
+            return QueryType.GENERAL
+        
+        # Check domain-specific keywords
+        scores = {
+            QueryType.VALUATION: sum(1 for kw in cls.VALUATION_KEYWORDS if kw in q),
+            QueryType.SUSTAINABILITY: sum(1 for kw in cls.SUSTAINABILITY_KEYWORDS if kw in q),
+            QueryType.ENERGY: sum(1 for kw in cls.ENERGY_KEYWORDS if kw in q),
+        }
+        
+        if max(scores.values()) > 0:
+            return max(scores, key=scores.get)
+        
+        return QueryType.GENERAL
+
+
+class AdaptiveRAG:
+    """
+    Select RAG strategy based on query complexity.
+    
+    Strategies:
+    - SIMPLE: Fast response, minimal processing
+    - MODERATE: Standard RAG with C-RAG
+    - COMPLEX: Full pipeline with cross-encoder
+    """
+    
+    COMPLEXITY_MARKERS = {
+        QueryComplexity.COMPLEX: [
+            "how does", "compare", "relationship", "affect",
+            "difference between", "impact of", "why does"
+        ],
+        QueryComplexity.SIMPLE: [
+            "what is", "define", "meaning of", "list"
+        ]
+    }
+    
+    @classmethod
+    def assess_complexity(cls, query: str) -> str:
+        """Assess query complexity."""
+        q = query.lower()
+        
+        # Check for complex patterns
+        if any(marker in q for marker in cls.COMPLEXITY_MARKERS[QueryComplexity.COMPLEX]):
+            return QueryComplexity.COMPLEX
+        
+        # Check for simple patterns
+        if any(marker in q for marker in cls.COMPLEXITY_MARKERS[QueryComplexity.SIMPLE]):
+            return QueryComplexity.SIMPLE
+        
+        # Default to moderate
+        return QueryComplexity.MODERATE
+    
+    @classmethod
+    def get_strategy(cls, complexity: str) -> Dict:
+        """Get RAG strategy parameters for complexity level."""
+        strategies = {
+            QueryComplexity.SIMPLE: {
+                "use_crag": False,
+                "use_cross_encoder": False,
+                "top_k": 3,
+                "use_parent": False,
+                "description": "⚡ FAST",
+            },
+            QueryComplexity.MODERATE: {
+                "use_crag": True,
+                "use_cross_encoder": False,
+                "top_k": 5,
+                "use_parent": True,
+                "description": "📊 STANDARD",
+            },
+            QueryComplexity.COMPLEX: {
+                "use_crag": True,
+                "use_cross_encoder": True,
+                "top_k": 10,
+                "use_parent": True,
+                "description": "🔬 DEEP ANALYSIS",
+            },
+        }
+        return strategies.get(complexity, strategies[QueryComplexity.MODERATE])
+    
+    @classmethod
+    def route(cls, query: str) -> Dict:
+        """
+        Full routing: classify + assess + get strategy.
+        
+        Returns:
+            Dict with query_type, complexity, and strategy params
+        """
+        query_type = SemanticRouter.classify(query)
+        complexity = cls.assess_complexity(query)
+        strategy = cls.get_strategy(complexity)
+        
+        return {
+            "query_type": query_type,
+            "complexity": complexity,
+            **strategy,
+        }

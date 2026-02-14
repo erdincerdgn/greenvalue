@@ -1,0 +1,47 @@
+# ============================================================
+# Prometheus Recording Rules — GreenValue AI
+# Pre-compute frequently used or expensive queries
+# ============================================================
+groups:
+  - name: greenvalue_recording_rules
+    interval: 30s
+    rules:
+      # AI Engine analysis throughput (jobs/min)
+      - record: greenvalue:analysis_throughput_per_minute
+        expr: rate(greenvalue_jobs_completed_total[1m]) * 60
+
+      # Request rate by status code (5m window)
+      - record: greenvalue:http_request_rate_5m
+        expr: rate(http_requests_total[5m])
+
+      # Error rate percentage (5m window)
+      - record: greenvalue:http_error_rate_5m
+        expr: |
+          (
+            rate(http_requests_total{status=~"5.."}[5m])
+            /
+            rate(http_requests_total[5m])
+          ) * 100
+
+      # AI Engine memory usage in MB
+      - record: greenvalue:ai_memory_usage_mb
+        expr: process_resident_memory_bytes{job="ai-engine"} / 1024 / 1024
+
+      # Redis memory usage in MB
+      - record: greenvalue:redis_memory_usage_mb
+        expr: redis_memory_used_bytes / 1024 / 1024
+
+      # Node CPU usage percentage
+      - record: greenvalue:node_cpu_usage_percent
+        expr: 100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+
+      # Node memory usage percentage
+      - record: greenvalue:node_memory_usage_percent
+        expr: |
+          (
+            1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes
+          ) * 100
+
+      # Container CPU usage per service
+      - record: greenvalue:container_cpu_percent
+        expr: rate(container_cpu_usage_seconds_total[5m]) * 100

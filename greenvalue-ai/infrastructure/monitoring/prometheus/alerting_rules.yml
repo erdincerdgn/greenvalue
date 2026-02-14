@@ -1,0 +1,106 @@
+# ============================================================
+# Prometheus Alerting Rules — GreenValue AI
+# ============================================================
+groups:
+  - name: greenvalue_ai_alerts
+    rules:
+      # AI Engine down
+      - alert: AIEngineDown
+        expr: greenvalue_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: ai-engine
+        annotations:
+          summary: "AI Engine is down"
+          description: "GreenValue AI Engine has been unreachable for more than 1 minute."
+
+      # YOLO model not loaded
+      - alert: YOLOModelNotLoaded
+        expr: greenvalue_model_loaded == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: ai-engine
+        annotations:
+          summary: "YOLO model not loaded"
+          description: "The YOLO inference model has not been loaded for more than 2 minutes."
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total{job="ai-engine"}[5m]) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          service: ai-engine
+        annotations:
+          summary: "High CPU usage on AI Engine"
+          description: "AI Engine CPU usage is above 90% for the last 10 minutes."
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes{job="ai-engine"} > 4e+9
+        for: 5m
+        labels:
+          severity: warning
+          service: ai-engine
+        annotations:
+          summary: "High memory usage on AI Engine"
+          description: "AI Engine is using more than 4GB of RAM."
+
+  - name: greenvalue_infra_alerts
+    rules:
+      # PostgreSQL down
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: postgres
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database has been unreachable for more than 1 minute."
+
+      # Redis down
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis server has been unreachable for more than 1 minute."
+
+      # MinIO high disk usage
+      - alert: MinIOHighDiskUsage
+        expr: minio_disk_storage_used_bytes / minio_disk_storage_total_bytes > 0.85
+        for: 15m
+        labels:
+          severity: warning
+          service: minio
+        annotations:
+          summary: "MinIO disk usage above 85%"
+          description: "MinIO storage disk usage has exceeded 85%."
+
+      # Backend high error rate
+      - alert: BackendHighErrorRate
+        expr: rate(http_requests_total{job="backend", status=~"5.."}[5m]) / rate(http_requests_total{job="backend"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "Backend error rate above 5%"
+          description: "The NestJS backend 5xx error rate has exceeded 5% for the last 5 minutes."
+
+      # Container restarts 
+      - alert: ContainerRestarting
+        expr: increase(container_restart_count[15m]) > 3
+        for: 0m
+        labels:
+          severity: warning
+          service: docker
+        annotations:
+          summary: "Container restarting frequently"
+          description: "Container {{ $labels.name }} has restarted more than 3 times in 15 minutes."

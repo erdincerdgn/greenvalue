@@ -1,0 +1,239 @@
+syntax = "proto3";
+
+package greenvalue.ai.v1;
+
+option java_multiple_files = true;
+
+// ============================================================
+// GreenValue AI Service - gRPC Interface
+// Backend (NestJS) ↔ AI Engine (Python FastAPI)
+// ============================================================
+
+// Main AI Analysis Service
+service AIService {
+  // Analyze a property image for energy efficiency
+  rpc AnalyzeImage (AnalyzeImageRequest) returns (AnalyzeImageResponse);
+
+  // Get analysis status for a job
+  rpc GetAnalysisStatus (GetAnalysisStatusRequest) returns (GetAnalysisStatusResponse);
+
+  // Calculate U-Value from detection results
+  rpc CalculateUValue (CalculateUValueRequest) returns (CalculateUValueResponse);
+
+  // Generate ROI report for a property
+  rpc GenerateReport (GenerateReportRequest) returns (GenerateReportResponse);
+
+  // Find visually similar properties
+  rpc FindSimilarProperties (FindSimilarRequest) returns (FindSimilarResponse);
+
+  // Health check
+  rpc HealthCheck (HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// ============================================================
+// Image Analysis
+// ============================================================
+
+message AnalyzeImageRequest {
+  string job_id = 1;
+  string property_id = 2;
+  string file_key = 3;           // MinIO object key (raw-uploads/...)
+  string model_size = 4;         // n, s, m, l, x (YOLO model size override)
+  AnalysisType analysis_type = 5;
+}
+
+enum AnalysisType {
+  ANALYSIS_TYPE_UNSPECIFIED = 0;
+  FULL_ANALYSIS = 1;             // Detection + U-Value + Heatmap
+  DETECTION_ONLY = 2;            // Only YOLO detection
+  UVALUE_ONLY = 3;               // Only physics calculation (with prior detections)
+}
+
+message AnalyzeImageResponse {
+  string job_id = 1;
+  AnalysisStatus status = 2;
+  AnalysisResult result = 3;
+  string error_message = 4;
+}
+
+message AnalysisResult {
+  repeated Detection detections = 1;
+  float overall_u_value = 2;
+  string energy_label = 3;       // A-G
+  string heatmap_key = 4;        // MinIO key for generated heatmap
+  string report_key = 5;         // MinIO key for generated PDF
+  float confidence_score = 6;
+  string model_version = 7;      // e.g., "yolo11m-seg"
+  float inference_time_ms = 8;
+  ImageMetadata image_metadata = 9;
+}
+
+message Detection {
+  string class_name = 1;         // e.g., "window", "facade", "roof", "door"
+  float confidence = 2;
+  BoundingBox bbox = 3;
+  repeated float mask_polygon = 4;  // Flattened polygon coordinates [x1,y1,x2,y2,...]
+  float area_m2 = 5;             // Estimated area in square meters
+  ComponentCondition condition = 6;
+  float u_value = 7;             // Component-level U-Value (W/m²·K)
+}
+
+message BoundingBox {
+  float x_min = 1;
+  float y_min = 2;
+  float x_max = 3;
+  float y_max = 4;
+}
+
+enum ComponentCondition {
+  CONDITION_UNSPECIFIED = 0;
+  GOOD = 1;                      // Modern, energy efficient
+  FAIR = 2;                      // Acceptable, minor improvements
+  POOR = 3;                      // Old, significant heat loss
+  CRITICAL = 4;                  // Urgent replacement needed
+}
+
+message ImageMetadata {
+  int32 width = 1;
+  int32 height = 2;
+  string format = 3;
+  int64 file_size_bytes = 4;
+}
+
+// ============================================================
+// Analysis Status
+// ============================================================
+
+message GetAnalysisStatusRequest {
+  string job_id = 1;
+}
+
+message GetAnalysisStatusResponse {
+  string job_id = 1;
+  AnalysisStatus status = 2;
+  float progress_percent = 3;    // 0-100
+  string current_step = 4;       // e.g., "detecting", "calculating_uvalue", "generating_heatmap"
+  AnalysisResult result = 5;     // Populated only when COMPLETED
+  string error_message = 6;
+}
+
+enum AnalysisStatus {
+  STATUS_UNSPECIFIED = 0;
+  QUEUED = 1;
+  PROCESSING = 2;
+  COMPLETED = 3;
+  FAILED = 4;
+}
+
+// ============================================================
+// U-Value Calculation
+// ============================================================
+
+message CalculateUValueRequest {
+  string property_id = 1;
+  repeated ComponentInput components = 2;
+  ClimateZone climate_zone = 3;
+}
+
+message ComponentInput {
+  string component_type = 1;     // window, wall, roof, floor, door
+  float area_m2 = 2;
+  string material = 3;           // e.g., "single_glass", "double_glass", "brick", "concrete"
+  float thickness_mm = 4;
+  int32 year_installed = 5;
+}
+
+enum ClimateZone {
+  CLIMATE_UNSPECIFIED = 0;
+  ZONE_1 = 1;                   // Hot
+  ZONE_2 = 2;                   // Warm
+  ZONE_3 = 3;                   // Mixed
+  ZONE_4 = 4;                   // Cool
+  ZONE_5 = 5;                   // Cold
+}
+
+message CalculateUValueResponse {
+  float total_u_value = 1;       // Overall U-Value (W/m²·K)
+  string energy_label = 2;       // A-G classification
+  repeated ComponentUValue components = 3;
+  float annual_heat_loss_kwh = 4;
+  float annual_energy_cost_eur = 5;
+  RenovationSuggestion suggestion = 6;
+}
+
+message ComponentUValue {
+  string component_type = 1;
+  float u_value = 2;
+  float heat_loss_percentage = 3;
+  string rating = 4;            // "good", "fair", "poor", "critical"
+}
+
+message RenovationSuggestion {
+  float projected_u_value = 1;
+  string projected_energy_label = 2;
+  float estimated_cost_eur = 3;
+  float annual_savings_eur = 4;
+  float payback_years = 5;
+  float roi_percentage = 6;
+  repeated string recommended_actions = 7;
+}
+
+// ============================================================
+// Report Generation
+// ============================================================
+
+message GenerateReportRequest {
+  string property_id = 1;
+  string job_id = 2;
+  ReportType report_type = 3;
+}
+
+enum ReportType {
+  REPORT_TYPE_UNSPECIFIED = 0;
+  ENERGY_CERTIFICATE = 1;       // Full energy efficiency report
+  ROI_ANALYSIS = 2;             // Renovation ROI report
+  COMPARISON = 3;               // Before/after comparison
+}
+
+message GenerateReportResponse {
+  string report_key = 1;        // MinIO object key (pdf-reports/...)
+  string report_url = 2;        // Pre-signed download URL
+  ReportType report_type = 3;
+}
+
+// ============================================================
+// Visual Similarity Search (Qdrant)
+// ============================================================
+
+message FindSimilarRequest {
+  string property_id = 1;
+  string image_key = 2;         // MinIO key of the reference image
+  int32 limit = 3;              // Max results (default: 10)
+  repeated string filter_labels = 4;  // Filter by energy label (e.g., ["C", "D"])
+}
+
+message FindSimilarResponse {
+  repeated SimilarProperty properties = 1;
+}
+
+message SimilarProperty {
+  string property_id = 1;
+  float similarity_score = 2;   // 0.0 - 1.0
+  string energy_label = 3;
+  string thumbnail_url = 4;
+}
+
+// ============================================================
+// Health Check
+// ============================================================
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  string status = 1;            // "healthy", "degraded", "unhealthy"
+  bool gpu_available = 2;
+  string gpu_name = 3;
+  int64 gpu_memory_mb = 4;
+  string model_loaded = 5;      // Currently loaded YOLO model
+  float uptime_seconds = 6;
+}

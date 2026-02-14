@@ -1,0 +1,270 @@
+# PROJECT CONTEXT: GREENVALUE AI (Bootstrap Edition)
+
+## 1. PROJECT OVERVIEW
+GreenValue AI is a PropTech platform that automates property valuation and energy efficiency retrofitting analysis. The system analyzes user-uploaded property photos using Computer Vision to identify energy inefficiencies (e.g., old windows, uninsulated facades) and generates a financial ROI report for renovations.
+
+**CRITICAL CONSTRAINT:** This project follows a "Zero Cost / Bootstrap" strategy.
+- **NO** Paid Cloud Services (AWS, Google Cloud, Azure).
+- **NO** Paid APIs (Google Maps, Auth0, OpenAI).
+- **USE** Self-hosted Open Source alternatives (MinIO, Leaflet/OSM, Passport.js, Local YOLO).
+
+## 2. TECHNOLOGY STACK (Strict Adherence)
+
+### A. Infrastructure (Dockerized - `greenvalue-ai/infrastructure/docker/`)
+- **Containerization:** Docker & Docker Compose.
+- **Database:** PostgreSQL 16 with **PostGIS** extension (Image: `postgis/postgis:16-3.4`). Port: `5432`.
+- **Cache & Queue:** Redis Stack (Image: `redis/redis-stack:latest`). Port: `6379`, RedisInsight: `8001`.
+- **Object Storage:** MinIO S3-Compatible (Image: `minio/minio`). API: `9000`, Console: `9001`.
+  - Buckets: `raw-uploads`, `pdf-reports`, `ai-heatmaps` (auto-created via `minio-init` sidecar).
+- **Gateway:** Nginx 1.25 (Reverse Proxy, SSL Termination, Rate Limiting). Ports: `80/443`.
+- **Vector DB:** Qdrant v1.12.4 (Visual Similarity Search). HTTP: `6333`, gRPC: `6334`.
+- **MLOps:** MLflow v2.18.0 (Model Registry & Experiment Tracking). Port: `5000`.
+- **Monitoring:** Prometheus v2.48 (`9091`), Grafana 10.2 (`3003`), cAdvisor v0.47 (`8080`), Node Exporter (`9100`).
+
+### B. Backend API (Modular Monolith - `greenvalue-be/`)
+- **Framework:** NestJS v11 (Node.js 20, Fastify adapter).
+- **Language:** TypeScript 5.
+- **Auth:** `@nestjs/passport` + `@nestjs/jwt` (Passport-JWT strategy).
+- **ORM:** Prisma 5 (Schema-first, PostGIS extensions enabled).
+- **Queue Manager:** `@nestjs/bullmq` + `bullmq` (Redis-backed job queue).
+- **Storage Client:** `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` (configured for MinIO).
+- **Validation:** `class-validator`, `class-transformer`.
+- **Realtime:** `@nestjs/websockets` + `socket.io` with `@socket.io/redis-adapter`.
+- **gRPC:** `@grpc/grpc-js` + `@grpc/proto-loader` (AI Engine communication).
+- **Monitoring:** `prom-client` (Prometheus metrics), `@nestjs/terminus` (health checks).
+- **Image Processing:** `sharp` (thumbnail generation, format conversion).
+- **Scheduling:** `@nestjs/schedule` (cron jobs, periodic tasks).
+- **API Docs:** `@nestjs/swagger` (auto-generated OpenAPI).
+- **Port Mapping:** Host `4000` → Container `3000`.
+
+### C. AI Engine (Microservice - `greenvalue-ai/`)
+- **Framework:** Python 3.12 + FastAPI 0.115.
+- **Runtime:** CUDA 12.4 (`nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04` base image).
+- **Computer Vision:** `ultralytics` 8.3.40 (YOLO11 Instance Segmentation).
+- **Model Architecture:** YOLO11 `-seg` variants.
+- **Model Selection Strategy (Dynamic):**
+  - Supports multiple model sizes: `yolo11n-seg`, `yolo11s-seg`, `yolo11m-seg`, `yolo11l-seg`, `yolo11x-seg`.
+  - **Environment Variable:** `YOLO_MODEL_SIZE` (default: `m`).
+  - RTX 5070 Ti (16GB VRAM) → `x` (Extra Large) for maximum precision.
+  - GTX 1650 Ti (4GB VRAM) → `m` (Medium) to fit VRAM constraints.
+  - VRAM tuning via `PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:256`.
+- **Physics Engine:** `numpy` 1.26 + `scipy` 1.14 (U-Value / thermal conductivity calculations).
+- **Geometric Processing:** `shapely` 2.0 (window area, polygon intersection calculations).
+- **Report Generation:** `reportlab` 4.2 (PDF), `matplotlib` 3.9 + `seaborn` 0.13 (heatmaps).
+- **Database:** `psycopg2-binary` 2.9 + `sqlalchemy` 2.0 + `geoalchemy2` 0.15 (PostGIS).
+- **gRPC Server:** `grpcio` 1.68 + `protobuf` 5.29 (compiled from `protos/`).
+- **Vector Search:** `qdrant-client` 1.12 ("Homes Like This" feature).
+- **Object Storage:** `minio` 7.2 (S3 client for photo download, report upload).
+- **Queue:** `redis[hiredis]` 5.2 (BullMQ job consumer).
+- **MLOps:** `mlflow` 2.18 (experiment tracking, model versioning).
+- **Monitoring:** `prometheus-client` 0.21 (metrics endpoint on port `9090`).
+- **Ports:** HTTP `8000`, gRPC `50051`, Metrics `9090`.
+- **Dev Volume:** Source code mounted (`./greenvalue-ai:/app`) — no rebuild on code changes.
+
+### D. Frontend (Web Clients - `greenvalue-fe/`)
+- **Framework:** Next.js 14 (App Router).
+- **UI Library:** `@mantine/core`, `@mantine/hooks`, `@mantine/form`.
+- **Charts:** `@mantine/charts` (Recharts wrapper).
+- **Maps:** `react-leaflet` + `leaflet` (Provider: OpenStreetMap / free tile servers).
+- **State:** `tanstack-query` (Server state), `zustand` (Client state).
+- **Apps:**
+  - `greenvalue-consumer/` — Consumer Web App (Homeowners). Dev Port: `3001`.
+  - `greenvalue-partner/` — B2B Partner Portal (Contractors). Dev Port: `3002`.
+  - `greenvalue-admin/` — Admin Dashboard (System Management).
+
+### E. Mobile (Field App - `greenvalue-fe/greenvalue-mobile/`)
+- **Framework:** React Native (Expo Go).
+- **Storage:** SQLite (Offline mode for field audits).
+- **Camera:** Expo Camera API (on-site property photo capture).
+
+## 3. ARCHITECTURE & DATA FLOW
+
+### 7-Layer Enterprise Architecture
+
+```
+Layer 1: Presentation (Omnichannel)
+  ├── Consumer Web (Next.js 14 / Mantine) :3001
+  ├── Partner Portal (Next.js 14 / Mantine) :3002
+  └── Mobile App (React Native / Expo)
+
+Layer 2: Edge & Gateway (Nginx)
+  └── SSL Termination, Rate Limiting, Static Cache :80/:443
+
+Layer 3: Application Core (NestJS Modular Monolith) :4000→:3000
+  ├── Domain Modules: Property, Valuation Engine, Marketplace, Auth (Passport-JWT)
+  └── Adapters: BullMQ Producer (Redis), S3 Client (MinIO), Prisma ORM (PostGIS)
+
+Layer 4: AI Intelligence & Ops (Python FastAPI) :8000
+  ├── YOLOv11 (Vision/Segmentation) + Physics Engine (U-Value Calc)
+  ├── GPU Acceleration (CUDA 12.4)
+  └── MLflow Logging → MLOps Registry :5000
+
+Layer 5: Data Persistence (PostgreSQL 16 + PostGIS) :5432
+  ├── Users & Roles, Property Polygons (Geometry), Transaction Logs
+
+Layer 6: Storage & Vectors
+  ├── MinIO S3 :9000 — Raw Photos, PDF Reports, AI Heatmaps
+  ├── Qdrant :6333 — Visual Similarity Search ("Homes Like This")
+  └── Redis Stack :6379 — BullMQ Job Queue, Session Caching
+
+Layer 7: Observability & Monitoring
+  ├── Prometheus :9091, Grafana :3003, cAdvisor :8080, Node Exporter :9100
+```
+
+### The "Scan-to-Value" Pipeline
+1. **Ingest:** User uploads a property photo via Next.js Web App or Mobile App.
+2. **Storage:** NestJS validates & uploads the raw file to MinIO (Bucket: `raw-uploads`).
+3. **Queue:** NestJS pushes a job `analyze_image` `{fileKey, propertyId}` to Redis (BullMQ).
+4. **Process:** Python AI Worker pulls the job, downloads image from MinIO.
+5. **Inference:** YOLO11 detects windows/facade type via instance segmentation. Physics engine calculates U-Value.
+6. **Heatmap:** AI generates thermal overlay visualization, uploads to MinIO (`ai-heatmaps`).
+7. **Report:** PDF report with ROI analysis generated via ReportLab, uploaded to MinIO (`pdf-reports`).
+8. **Result:** Python Worker saves structured JSON result to PostgreSQL and notifies via Redis pub/sub.
+9. **Similarity:** Property embedding stored in Qdrant for "Homes Like This" visual search.
+10. **Dashboard:** User views the generated ROI report, heatmap, and similar properties on the Dashboard.
+
+### Communication Protocols
+- **Backend ↔ AI Engine:** gRPC (fast, typed) + HTTP REST (fallback).
+- **Backend ↔ Frontend:** REST API (HTTPS) + WebSocket (real-time notifications via Socket.IO).
+- **Backend ↔ Redis:** BullMQ protocol (job queue producer/consumer).
+- **Backend ↔ MinIO:** S3 protocol (pre-signed URLs for uploads/downloads).
+- **AI Engine ↔ MinIO:** S3 protocol (direct file access).
+- **AI Engine ↔ Qdrant:** HTTP/gRPC (vector operations).
+
+## 4. DATABASE SCHEMA (Key Entities)
+
+> Defined in `greenvalue-be/prisma/schema.prisma` with Prisma ORM.
+> PostGIS extension enabled for spatial geometry support.
+
+### `User` (table: `users`)
+- `id` (UUID, PK, auto-generated)
+- `email` (String, Unique)
+- `password` (String, Argon2 hash)
+- `fullName` (String, Optional)
+- `role` (Enum: `OWNER` | `CONTRACTOR` | `ADMIN`, default: `OWNER`)
+- `createdAt` (DateTime, auto)
+- `updatedAt` (DateTime, auto)
+
+### `Property` (planned)
+- `id` (UUID)
+- `ownerId` (FK → User)
+- `location` (PostGIS Geometry Point SRID 4326)
+- `address` (JSON)
+- `energyLabel` (Enum: A–G)
+
+### `RenovationProject` (planned)
+- `id` (UUID)
+- `propertyId` (FK → Property)
+- `currentValue` (Decimal)
+- `projectedValue` (Decimal)
+- `roiPercentage` (Float)
+- `status` (Enum: `PENDING` | `IN_PROGRESS` | `COMPLETED`)
+
+### `AnalysisResult` (planned)
+- `id` (UUID)
+- `propertyId` (FK → Property)
+- `modelVersion` (String — YOLO model used)
+- `detections` (JSON — segmentation results)
+- `uValue` (Float — thermal transmittance)
+- `heatmapKey` (String — MinIO object key)
+- `reportKey` (String — MinIO PDF object key)
+- `processedAt` (DateTime)
+
+## 5. FOLDER STRUCTURE (Actual Workspace)
+
+```text
+GreenValue AI/
+├── PROJECT_CONTEXT.md              # This file
+├── .venv/                          # Python virtual environment (Python 3.12)
+│
+├── greenvalue-be/                  # Layer 3: NestJS Backend (Modular Monolith)
+│   ├── prisma/
+│   │   └── schema.prisma           # Database schema (PostGIS enabled)
+│   ├── proto/
+│   │   └── ai_service.proto        # gRPC service definition
+│   ├── src/                        # Application source code
+│   ├── test/                       # E2E & unit tests
+│   ├── scripts/                    # Utility scripts
+│   ├── Dockerfile                  # Multi-stage Node.js build
+│   ├── docker-compose.yml          # Backend-only compose (dev)
+│   ├── docker-entrypoint.sh        # DB migration + startup
+│   ├── ecosystem.config.js         # PM2 cluster config
+│   ├── package.json                # NestJS v11 + dependencies
+│   └── tsconfig.json
+│
+├── greenvalue-ai/                  # Layer 4: AI Engine (Python FastAPI)
+│   ├── modules/                    # AI modules (vision, physics, etc.)
+│   ├── protos/                     # gRPC proto files
+│   ├── scripts/                    # Training & utility scripts
+│   ├── tests/                      # AI engine tests
+│   ├── utils/                      # Shared utilities
+│   ├── data/                       # Local data (gitignored)
+│   ├── logs/                       # Application logs (gitignored)
+│   ├── infrastructure/
+│   │   ├── docker/
+│   │   │   ├── Dockerfile          # Multi-stage CUDA 12.4 build
+│   │   │   ├── docker-compose.yml  # Full-stack compose (all 7 layers)
+│   │   │   └── .dockerignore
+│   │   ├── nginx/
+│   │   │   ├── nginx.conf          # Reverse proxy config
+│   │   │   ├── generate-ssl.sh     # Self-signed cert generator
+│   │   │   └── ssl/                # SSL certificates
+│   │   ├── postgres/
+│   │   │   └── init-postgis.sql    # PostGIS extension init script
+│   │   ├── prometheus/
+│   │   │   └── prometheus.yml      # Scrape configuration
+│   │   ├── monitoring/
+│   │   │   ├── alertmanager/
+│   │   │   ├── grafana/
+│   │   │   └── prometheus/
+│   │   ├── grpc/
+│   │   │   └── generated/          # Auto-generated proto stubs
+│   │   ├── qdrant/
+│   │   │   └── qdrant_collection.json
+│   │   └── k8s/                    # Kubernetes configs (future)
+│   ├── requirements.txt            # Pinned Python dependencies
+│   ├── .env                        # Environment variables
+│   └── .env.example                # Environment template
+│
+├── greenvalue-fe/                  # Layer 1: Frontend Applications
+│   ├── greenvalue-consumer/        # Consumer Web App (Homeowners)
+│   ├── greenvalue-partner/         # B2B Partner Portal (Contractors)
+│   ├── greenvalue-admin/           # Admin Dashboard
+│   └── greenvalue-mobile/          # React Native / Expo Mobile App
+│
+└── reference_files/                # Architecture reference (NeuralTrade examples)
+```
+
+## 6. DOCKER COMPOSE PROFILES
+
+The full-stack compose file (`greenvalue-ai/infrastructure/docker/docker-compose.yml`) supports profiles:
+
+| Command | Services Started |
+|---------|-----------------|
+| `docker compose up -d` | Core: PostgreSQL, Redis, MinIO, Backend, AI Engine, Qdrant |
+| `--profile monitoring` | + Prometheus, Grafana, cAdvisor, Node Exporter |
+| `--profile ml` | + MLflow (Model Registry) |
+| `--profile gateway` | + Nginx (Reverse Proxy / SSL) |
+
+## 7. PORT MAP
+
+| Service | Host Port | Container Port | Protocol |
+|---------|-----------|----------------|----------|
+| NestJS Backend | 4000 | 3000 | HTTP/WS |
+| AI Engine (FastAPI) | 8000 | 8000 | HTTP |
+| AI Engine (gRPC) | 50051 | 50051 | gRPC |
+| AI Engine (Metrics) | 9090 | 9090 | HTTP |
+| PostgreSQL + PostGIS | 5432 | 5432 | TCP |
+| Redis Stack | 6379 | 6379 | TCP |
+| RedisInsight | 8001 | 8001 | HTTP |
+| MinIO API | 9000 | 9000 | S3/HTTP |
+| MinIO Console | 9001 | 9001 | HTTP |
+| Qdrant HTTP | 6333 | 6333 | HTTP |
+| Qdrant gRPC | 6334 | 6334 | gRPC |
+| MLflow | 5000 | 5000 | HTTP |
+| Prometheus | 9091 | 9090 | HTTP |
+| Grafana | 3003 | 3000 | HTTP |
+| cAdvisor | 8080 | 8080 | HTTP |
+| Node Exporter | 9100 | 9100 | HTTP |
+| Nginx HTTP | 80 | 80 | HTTP |
+| Nginx HTTPS | 443 | 443 | HTTPS |

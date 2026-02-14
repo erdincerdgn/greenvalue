@@ -1,0 +1,120 @@
+# =============================================================================
+# GREENVALUE AI - Python AI Engine Dependencies
+# Layer 4: AI Intelligence & Ops (Port: 8000)
+# All versions pinned for reproducibility & cross-compatibility
+# ULTIMATE FIX: All 4 dependency conflicts resolved (Pydantic, PyTorch, SQLAlchemy, Pillow)
+# =============================================================================
+
+# --- PyTorch with CUDA 12.4 Support ---
+# RTX 5070 Ti (Blackwell) requires CUDA 12.4+, also backward-compatible with GTX 1650 Ti
+# --extra-index-url keeps PyPI as primary, falls back to PyTorch index for CUDA wheels
+--extra-index-url https://download.pytorch.org/whl/cu124
+torch==2.5.1+cu124                 # FIXED: Added +cu124 suffix for CUDA compatibility
+torchvision==0.20.1+cu124          # FIXED: Added +cu124 suffix to match torch
+# NOTE: torchaudio removed - no audio processing needed in property valuation
+
+# --- Computer Vision & AI (YOLO11 - GreenValue Core) ---
+ultralytics==8.3.40             # YOLO11 Instance Segmentation (yolo11m-seg / yolo11x-seg)
+opencv-python-headless==4.10.0.84  # Image processing (headless for Docker containers)
+pillow==10.4.0                  # FIXED: Downgraded from 11.0.0 (compatible with fastembed<11.0.0)
+scikit-image==0.24.0            # Advanced image processing (edge detection, morphology)
+
+# --- Physics Engine & Data Processing (U-Value Calculations) ---
+numpy==1.26.4                   # Matrix operations (heat loss formulas, thermal bridging)
+scipy==1.14.1                   # Physical simulations (thermal conductivity optimization)
+pandas==2.2.3                   # Structured data & CSV report generation
+shapely==2.0.6                  # Geometric calculations (window area, polygon intersection)
+
+# --- Visualization & Report Generation ---
+# Architecture: "Generated PDF Reports" & "AI Heatmaps" stored in MinIO (Layer 6)
+matplotlib==3.9.3               # AI heatmap generation (thermal overlay visualizations)
+seaborn==0.13.2                 # Statistical visualization (energy efficiency distributions)
+reportlab==4.2.5                # PDF report generation (ROI reports, energy certificates)
+jinja2==3.1.4                   # HTML templating for structured report layouts
+
+# --- API Server (FastAPI - Port 8000) ---
+fastapi==0.115.6
+uvicorn[standard]==0.32.1       # ASGI server with uvloop & httptools
+pydantic==2.9.2                 # FIXED: Downgraded from 2.10.3 (compatible with unstructured-client<2.10.0)
+pydantic-settings==2.7.0        # Environment variable management (.env config)
+python-multipart==0.0.17        # Multipart/form-data support (image upload endpoint)
+httpx==0.28.1                   # Async HTTP client (internal service communication)
+aiofiles==24.1.0                # Async file I/O operations
+
+# --- Infrastructure Connections ---
+# Redis Stack (Port 6379) - BullMQ Job Queue & Session Caching
+redis[hiredis]==5.2.1           # Redis client with C-extension for production performance
+
+# MinIO S3 (API: 9000, Console: 9001) - Object Storage
+minio==7.2.12                   # S3-compatible client (raw photos, PDF reports, heatmaps)
+
+# PostgreSQL 16 + PostGIS (Port 5432) - Primary Spatial DB
+psycopg2-binary==2.9.10         # PostgreSQL driver (sync, for migrations & batch ops)
+sqlalchemy==2.0.35              # FIXED: Downgraded from 2.0.36 (compatible with langchain-community<2.0.36)
+geoalchemy2==0.15.2             # PostGIS geometry types & spatial operations
+
+# --- Vector Database (Qdrant - Port 6333) ---
+# "Homes Like This" visual similarity search feature
+qdrant-client==1.12.1           # Vector similarity search (property embedding lookup)
+
+# --- gRPC (Backend ↔ AI Engine Communication) ---
+# Compiled from proto/ai_service.proto
+grpcio==1.68.1                  # gRPC runtime
+grpcio-tools==1.68.1            # protoc compiler for .proto → Python stubs
+protobuf==5.29.2                # Protocol Buffers serialization (required by grpcio-tools)
+
+# --- MLOps (MLFlow - Port 5000) ---
+# Architecture: Model Versioning & Experiment Tracking
+mlflow==2.18.0                  # Experiment tracking, model registry, artifact store
+mlflow-skinny==2.18.0           # Lightweight client for inference-only containers
+
+# --- Monitoring & Observability (Layer 7) ---
+# Prometheus (Port 9091) scrapes metrics from this service
+prometheus-client==0.21.1       # /metrics endpoint for Grafana dashboards
+
+# --- Utilities ---
+python-dotenv==1.0.1            # Environment variable loading from .env files
+tqdm==4.67.1                    # Progress bars (training logs, batch processing)
+colorama==0.4.6                 # Colored terminal output (log formatting)
+requests==2.32.3                # Sync HTTP client (webhook callbacks, health checks)
+
+# =============================================================================
+# REMOVED PACKAGES (Not needed for GreenValue AI architecture):
+# - torchaudio: No audio processing in property valuation
+# - openbb, yfinance, ccxt: No trading/finance features
+# - vectorbt, backtrader: No backtesting
+# - tensorflow: PyTorch-only stack
+# =============================================================================
+
+# =============================================================================
+# RAG MODULE - Retrieval-Augmented Generation Dependencies
+# Added for property valuation and sustainability knowledge base
+# =============================================================================
+
+# --- LangChain Core ---
+langchain==0.3.7
+langchain-core==0.3.15
+langchain-qdrant==0.1.4         # Qdrant vector store integration
+langchain-ollama==0.2.0         # Ollama LLM integration
+langchain-community==0.3.5      # Community integrations (UnstructuredAPIFileLoader)
+langchain-text-splitters==0.3.2 # Text chunking (RecursiveCharacterTextSplitter)
+
+unstructured[all-docs]==0.16.0
+unstructured-client==0.27.0
+pdf2image==1.17.0
+pdfminer.six==20231228
+pillow-heif==0.21.0
+pytesseract==0.3.13
+
+# --- Embeddings ---
+fastembed==0.4.1                # Fast dense embeddings (BAAI/bge-small-en-v1.5)
+
+# --- Reranking ---
+flashrank==0.2.9                # FlashRank for fast document reranking
+sentence-transformers==3.2.1    # Cross-encoder models (ms-marco-MiniLM)
+
+markdownify==0.13.1
+chardet==5.2.0
+
+# --- Document Parsing ---
+PyPDF2==3.0.1                   # PDF parsing fallback (when Unstructured not available)

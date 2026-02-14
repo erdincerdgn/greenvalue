@@ -1,0 +1,275 @@
+"""
+Document Ingestion Pipeline
+Author: GreenValue AI Team
+Purpose: Ingest PDFs and create child/parent chunks with metadata extraction.
+"""
+
+import logging
+import os
+import re
+import uuid
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+from langchain_core.documents import Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+from .config import RAGConfig, CATEGORIES
+from .embeddings import EmbeddingManager
+from .store import GreenValueDocumentStore
+
+logger = logging.getLogger("greenvalue-rag")
+
+
+def extract_document_metadata(file_path: str) -> Dict:
+    """
+    Extract metadata from document filename.
+    
+    Examples:
+    - real-estate-investing-guide.pdf → category: Real Estate
+    - green-building-sustainability.pdf → category: Sustainability
+    """
+    filename = os.path.basename(file_path).lower()
+    
+    # Category detection for GreenValue domain
+    category = "General"
+    category_keywords = {
+        "Real Estate": ["real-estate", "property", "housing", "building", "construction"],
+        "Sustainability": ["sustainable", "green", "eco", "environmental", "carbon"],
+        "Energy Efficiency": ["energy", "insulation", "hvac", "solar", "efficiency", "thermal"],
+        "Finance": ["finance", "investment", "mortgage", "roi", "valuation", "appraisal"],
+        "Valuation": ["valuation", "appraisal", "assessment", "pricing"],
+    }
+    
+    for cat, keywords in category_keywords.items():
+        if any(kw in filename for kw in keywords):
+            category = cat
+            break
+    
+    # Extract author if present
+    author = "Unknown"
+    if "dummies" in filename:
+        author = "For Dummies Series"
+    elif "guide" in filename:
+        author = "Professional Guide"
+    
+    # Extract year from filename
+    year_match = re.search(r'(20\d{2})', filename)
+    year = int(year_match.group(1)) if year_match else datetime.now().year
+    
+    return {
+        "category": category,
+        "author": author,
+        "year": year,
+        "source_file": os.path.basename(file_path),
+        "indexed_at": datetime.now().isoformat(),
+    }
+
+
+class DocumentIngestionPipeline:
+    """
+    Ingestion pipeline for PDFs with parent-child chunking.
+    """
+    
+    def __init__(
+        self,
+        config: Optional[RAGConfig] = None,
+        store: Optional[GreenValueDocumentStore] = None
+    ):
+        self.config = config or RAGConfig()
+        self.store = store or GreenValueDocumentStore(self.config)
+    
+    def parse_pdf(self, file_path: str) -> str:
+        """Parse PDF file to text using Unstructured API or fallback."""
+        try:
+            from langchain_community.document_loaders import UnstructuredAPIFileLoader
+            
+            loader = UnstructuredAPIFileLoader(
+                url=self.config.unstructured_url,
+                file_path=file_path,
+                mode="elements"
+            )
+            raw_docs = loader.load()
+            return "\n\n".join([doc.page_content for doc in raw_docs])
+            
+        except Exception as e:
+            logger.warning(f"Unstructured API failed: {e}, trying fallback...")
+            return self._fallback_parse(file_path)
+    
+    def _fallback_parse(self, file_path: str) -> str:
+        """Fallback PDF parsing using PyPDF2."""
+        try:
+            import PyPDF2
+            
+            with open(file_path, 'rb') as f:
+                reader = PyPDF2.PdfReader(f)
+                text = ""
+                for page in reader.pages:
+                    text += page.extract_text() + "\n\n"
+                return text
+        except ImportError:
+            logger.error("PyPDF2 not installed. Run: pip install PyPDF2")
+            return ""
+        except Exception as e:
+            logger.error(f"PDF parsing failed: {e}")
+            return ""
+    
+    def create_chunks(
+        self,
+        text: str,
+        metadata: Dict
+    ) -> Tuple[List[Document], List[Document]]:
+        """
+        Create parent and child chunks from text.
+        
+        Returns:
+            Tuple of (child_docs, parent_docs)
+        """
+        # Parent splitter (larger chunks for context)
+        parent_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=self.config.parent_chunk_size,
+            chunk_overlap=self.config.parent_chunk_overlap,
+            separators=["\n\n\n", "\n\n", "\n", ". ", " "]
+        )
+        
+        # Child splitter (smaller chunks for precision)
+        child_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=self.config.child_chunk_size,
+            chunk_overlap=self.config.child_chunk_overlap,
+            separators=["\n\n", "\n", ". ", " "]
+        )
+        
+        parent_chunks = parent_splitter.split_text(text)
+        
+        child_docs = []
+        parent_docs = []
+        
+        for parent_text in parent_chunks:
+            parent_id = str(uuid.uuid4())
+            
+            # Create parent document
+            parent_doc = Document(
+                page_content=parent_text,
+                metadata={
+                    **metadata,
+                    "doc_type": "parent",
+                    "parent_id": parent_id
+                }
+            )
+            parent_docs.append(parent_doc)
+            
+            # Store in memory for quick lookup
+            self.store.parent_docs[parent_id] = parent_doc
+            
+            # Create child chunks linked to parent
+            child_texts = child_splitter.split_text(parent_text)
+            for child_text in child_texts:
+                child_doc = Document(
+                    page_content=child_text,
+                    metadata={
+                        **metadata,
+                        "doc_type": "child",
+                        "parent_id": parent_id
+                    }
+                )
+                child_docs.append(child_doc)
+        
+        return child_docs, parent_docs
+    
+    def ingest_file(self, file_path: str) -> Dict:
+        """
+        Ingest a single file into the knowledge base.
+        
+        Returns:
+            Dict with ingestion statistics
+        """
+        logger.info(f"📄 Ingesting: {os.path.basename(file_path)}")
+        
+        # Initialize store if needed
+        if not self.store._initialized:
+            self.store.initialize()
+            self.store.setup_collections()
+        
+        # Extract metadata
+        metadata = extract_document_metadata(file_path)
+        logger.info(f"  → Category: {metadata['category']}")
+        
+        # Parse document
+        text = self.parse_pdf(file_path)
+        if not text:
+            return {"error": "Failed to parse document", "file": file_path}
+        
+        # Create chunks
+        child_docs, parent_docs = self.create_chunks(text, metadata)
+        logger.info(f"  → {len(parent_docs)} parents, {len(child_docs)} children")
+        
+        # Store in Qdrant
+        child_count = self.store.add_documents(
+            child_docs,
+            collection=self.config.child_collection
+        )
+        parent_count = self.store.add_documents(
+            parent_docs,
+            collection=self.config.parent_collection
+        )
+        
+        logger.info(f"  ✅ Indexed: {child_count} child + {parent_count} parent chunks")
+        
+        return {
+            "file": os.path.basename(file_path),
+            "category": metadata["category"],
+            "child_chunks": child_count,
+            "parent_chunks": parent_count,
+        }
+    
+    def ingest_directory(
+        self,
+        directory: Optional[str] = None,
+        force_recreate: bool = False
+    ) -> Dict:
+        """
+        Ingest all PDFs from a directory.
+        
+        Returns:
+            Dict with total statistics
+        """
+        directory = directory or self.config.knowledge_base_path
+        books_path = Path(directory)
+        
+        if not books_path.exists():
+            logger.warning(f"Knowledge base path not found: {directory}")
+            books_path.mkdir(parents=True, exist_ok=True)
+            return {"error": "Directory created but no files found"}
+        
+        pdf_files = list(books_path.glob("*.pdf"))
+        
+        if not pdf_files:
+            logger.warning(f"No PDF files found in {directory}")
+            return {"error": "No PDF files found", "path": directory}
+        
+        logger.info(f"📚 Found {len(pdf_files)} PDF files")
+        
+        # Setup collections
+        self.store.initialize()
+        self.store.setup_collections(force_recreate=force_recreate)
+        
+        results = []
+        total_children = 0
+        total_parents = 0
+        
+        for pdf_file in pdf_files:
+            result = self.ingest_file(str(pdf_file))
+            results.append(result)
+            if "child_chunks" in result:
+                total_children += result["child_chunks"]
+                total_parents += result["parent_chunks"]
+        
+        logger.info(f"✅ Total indexed: {total_children} child + {total_parents} parent chunks")
+        
+        return {
+            "files_processed": len(pdf_files),
+            "total_child_chunks": total_children,
+            "total_parent_chunks": total_parents,
+            "results": results,
+        }

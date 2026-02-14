@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GreenValue AI User Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ecbd",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#10221e",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem", // 12px based on user request
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .blueprint-pattern {
+            background-color: #f6f8f8;
+            background-image: linear-gradient(#e5e7eb 1px, transparent 1px), linear-gradient(90deg, #e5e7eb 1px, transparent 1px);
+            background-size: 40px 40px;
+            background-position: center center;
+            opacity: 0.4;
+        }
+        .ios-blur {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#111816] dark:text-white antialiased">
+<div class="relative min-h-screen max-w-md mx-auto bg-white dark:bg-background-dark shadow-2xl overflow-hidden flex flex-col">
+<!-- Background Pattern Overlay -->
+<div class="absolute inset-0 blueprint-pattern pointer-events-none"></div>
+<!-- Main Content Scroll Area -->
+<div class="relative flex-1 overflow-y-auto pb-32">
+<!-- Header/Profile Section -->
+<div class="flex flex-col items-center pt-12 pb-6 px-6">
+<div class="relative">
+<div class="size-32 rounded-full border-4 border-primary p-1 bg-white dark:bg-gray-800 shadow-xl overflow-hidden">
+<img alt="User Avatar" class="w-full h-full object-cover rounded-full" data-alt="Professional man in a suit smiling portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAndzQVpKzc8sYbu0OKtdTdVbsengKlCWBGQp9G7VS511628mm0Pibbr6w5ej71keeRtPjofE_qtGh0JorbPrhv7JnzHSp545bH99EsWn8Z-SjC-YcLlJF5NZ7f-RxboPbNr2t21lNj4-BknosXymN1KPvHY0ulrOczc1j-a7FtumdqjFYAwxeLolBYCQ824ChQg6siWgmH8SerLKy7EASieHZac1FCI2m7_l1zNo5eDbt4bGsHJP_sia7szgJ5yfHSVw-KbIkTa-4"/>
+</div>
+<div class="absolute bottom-1 right-1 bg-yellow-400 text-[#111816] text-[10px] font-bold px-2 py-1 rounded-full border-2 border-white flex items-center gap-1 shadow-sm">
+<span class="material-symbols-outlined !text-[12px] fill-1">star</span> PREMIUM
+                    </div>
+</div>
+<h1 class="mt-4 text-2xl font-bold tracking-tight">Alex Investor</h1>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-sm font-medium text-primary bg-primary/10 px-3 py-0.5 rounded-full">Premium Member</span>
+<span class="text-sm font-medium text-amber-600 bg-amber-50 px-3 py-0.5 rounded-full border border-amber-100 flex items-center gap-1">
+<span class="material-symbols-outlined !text-sm">workspace_premium</span> Gold Badge
+                    </span>
+</div>
+</div>
+<!-- Stats Bar -->
+<div class="px-4 mb-6">
+<div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border border-gray-100 dark:border-gray-700 rounded-lg p-5 flex divide-x divide-gray-100 dark:divide-gray-700 shadow-sm">
+<div class="flex-1 flex flex-col items-center">
+<span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Properties Scanned</span>
+<span class="text-2xl font-bold text-[#111816] dark:text-white">42</span>
+</div>
+<div class="flex-1 flex flex-col items-center">
+<span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Avg. Energy Score</span>
+<span class="text-2xl font-bold text-primary">A</span>
+</div>
+</div>
+</div>
+<!-- Main Menu List -->
+<div class="px-4 space-y-2">
+<!-- Personal Info -->
+<div class="flex items-center gap-4 bg-white/60 dark:bg-gray-800/60 p-4 rounded-lg border border-gray-100 dark:border-gray-700 group active:bg-gray-50 dark:active:bg-gray-700 transition-colors cursor-pointer">
+<div class="flex items-center justify-center size-10 rounded-lg bg-primary/20 text-primary">
+<span class="material-symbols-outlined">person</span>
+</div>
+<p class="text-base font-medium flex-1">Personal Information</p>
+<span class="material-symbols-outlined text-gray-400">chevron_right</span>
+</div>
+<!-- Investment Preferences -->
+<div class="flex items-center gap-4 bg-white/60 dark:bg-gray-800/60 p-4 rounded-lg border border-gray-100 dark:border-gray-700 group active:bg-gray-50 transition-colors cursor-pointer">
+<div class="flex items-center justify-center size-10 rounded-lg bg-primary/20 text-primary">
+<span class="material-symbols-outlined">settings_input_component</span>
+</div>
+<p class="text-base font-medium flex-1">Investment Preferences</p>
+<span class="material-symbols-outlined text-gray-400">chevron_right</span>
+</div>
+<!-- Subscription Plan -->
+<div class="flex items-center gap-4 bg-white/60 dark:bg-gray-800/60 p-4 rounded-lg border border-gray-100 dark:border-gray-700 group active:bg-gray-50 transition-colors cursor-pointer">
+<div class="flex items-center justify-center size-10 rounded-lg bg-primary/20 text-primary">
+<span class="material-symbols-outlined">credit_card</span>
+</div>
+<p class="text-base font-medium flex-1">Subscription Plan</p>
+<span class="material-symbols-outlined text-gray-400">chevron_right</span>
+</div>
+<!-- Security & Privacy -->
+<div class="flex items-center gap-4 bg-white/60 dark:bg-gray-800/60 p-4 rounded-lg border border-gray-100 dark:border-gray-700 group active:bg-gray-50 transition-colors cursor-pointer">
+<div class="flex items-center justify-center size-10 rounded-lg bg-primary/20 text-primary">
+<span class="material-symbols-outlined">security</span>
+</div>
+<p class="text-base font-medium flex-1">Security &amp; Privacy</p>
+<span class="material-symbols-outlined text-gray-400">chevron_right</span>
+</div>
+<!-- Environmental Impact Stats -->
+<div class="flex items-center gap-4 bg-white/60 dark:bg-gray-800/60 p-4 rounded-lg border border-gray-100 dark:border-gray-700 group active:bg-gray-50 transition-colors cursor-pointer">
+<div class="flex items-center justify-center size-10 rounded-lg bg-[#e8fff8] text-[#0fb893]">
+<span class="material-symbols-outlined">eco</span>
+</div>
+<p class="text-base font-medium flex-1">Environmental Impact Stats</p>
+<span class="material-symbols-outlined text-gray-400">chevron_right</span>
+</div>
+</div>
+<!-- Logout Button -->
+<div class="px-4 mt-8 pb-10">
+<button class="w-full flex items-center justify-center gap-2 p-4 text-[#FF4D4D] font-semibold bg-red-50 dark:bg-red-900/20 rounded-lg active:scale-[0.98] transition-all">
+<span class="material-symbols-outlined">logout</span>
+                    Log Out
+                </button>
+</div>
+</div>
+<!-- Bottom Navigation Bar (iOS Style) -->
+<div class="absolute bottom-0 inset-x-0 h-24 bg-white/90 dark:bg-background-dark/90 ios-blur border-t border-gray-100 dark:border-gray-800 flex justify-around items-start pt-3 px-2 z-50">
+<div class="flex flex-col items-center gap-1 flex-1 opacity-50">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</div>
+<div class="flex flex-col items-center gap-1 flex-1 opacity-50">
+<span class="material-symbols-outlined">map</span>
+<span class="text-[10px] font-medium">Map</span>
+</div>
+<div class="flex flex-col items-center gap-1 flex-1 -mt-6">
+<div class="size-14 bg-primary text-[#111816] rounded-full flex items-center justify-center shadow-lg border-4 border-white dark:border-background-dark">
+<span class="material-symbols-outlined !text-3xl">add_circle</span>
+</div>
+<span class="text-[10px] font-medium mt-1">Scan</span>
+</div>
+<div class="flex flex-col items-center gap-1 flex-1 opacity-50">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-[10px] font-medium">Reports</span>
+</div>
+<div class="flex flex-col items-center gap-1 flex-1 text-primary">
+<span class="material-symbols-outlined fill-1">person</span>
+<span class="text-[10px] font-bold">Profile</span>
+<div class="w-1 h-1 bg-primary rounded-full mt-0.5"></div>
+</div>
+</div>
+<!-- Home Indicator Area -->
+<div class="absolute bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-gray-300 dark:bg-gray-700 rounded-full z-[60]"></div>
+</div>
+</body></html>

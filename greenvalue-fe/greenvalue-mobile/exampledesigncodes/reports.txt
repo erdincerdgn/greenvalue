@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GreenValue AI Reports</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#00614c",
+                        "accent-gold": "#C5A059",
+                        "background-light": "#f5f8f8",
+                        "background-dark": "#0f231f",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .blueprint-pattern {
+            background-image: radial-gradient(#00614c11 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<!-- Sticky Top Bar -->
+<header class="sticky top-0 z-20 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+<div class="flex items-center justify-between px-4 h-16">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-2xl">analytics</span>
+<h1 class="text-lg font-bold tracking-tight">Reports &amp; Analytics</h1>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+<span class="material-symbols-outlined">search</span>
+</button>
+</div>
+</div>
+<!-- Date Filter Bar -->
+<div class="px-4 pb-3 flex justify-between items-center">
+<button class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined text-sm">calendar_today</span>
+                Last 30 Days
+                <span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+<span class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Updated 2m ago</span>
+</div>
+</header>
+<main class="pb-24 blueprint-pattern">
+<!-- Energy Efficiency Gauge Card -->
+<section class="p-4">
+<div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 flex flex-col items-center">
+<h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-6 w-full text-left uppercase tracking-wider">Total Portfolio Energy Efficiency</h3>
+<div class="relative flex items-center justify-center">
+<!-- Gauge SVG -->
+<svg class="w-48 h-48 transform -rotate-90">
+<circle class="text-slate-100 dark:text-slate-800" cx="96" cy="96" fill="transparent" r="80" stroke="currentColor" stroke-width="12"></circle>
+<circle class="text-primary" cx="96" cy="96" fill="transparent" r="80" stroke="currentColor" stroke-dasharray="502.6" stroke-dashoffset="150" stroke-linecap="round" stroke-width="12"></circle>
+</svg>
+<!-- Label in Center -->
+<div class="absolute flex flex-col items-center">
+<span class="text-5xl font-black text-primary">B</span>
+<span class="text-xs font-bold text-slate-400 uppercase">Label</span>
+</div>
+</div>
+<div class="mt-6 grid grid-cols-2 w-full gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+<div class="text-center border-r border-slate-100 dark:border-slate-800">
+<p class="text-xs text-slate-400 mb-1">Portfolio Avg.</p>
+<p class="text-lg font-bold text-primary">72% <span class="text-xs text-green-500">↑</span></p>
+</div>
+<div class="text-center">
+<p class="text-xs text-slate-400 mb-1">Target</p>
+<p class="text-lg font-bold text-slate-700 dark:text-slate-200">Label A</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Market Trends Chart Section -->
+<section class="p-4">
+<div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h3 class="text-base font-bold tracking-tight">Market Trends</h3>
+<p class="text-xs text-slate-400">Property Value Growth</p>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-lg font-bold text-primary">+12.4%</span>
+<span class="text-[10px] text-green-600 font-bold px-1.5 py-0.5 bg-green-50 rounded">YEAR OVER YEAR</span>
+</div>
+</div>
+<!-- Custom SVG Chart -->
+<div class="relative h-48 w-full mb-4">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 400 150">
+<!-- Grid Lines -->
+<line stroke="#f1f5f9" stroke-width="1" x1="0" x2="400" y1="30" y2="30"></line>
+<line stroke="#f1f5f9" stroke-width="1" x1="0" x2="400" y1="75" y2="75"></line>
+<line stroke="#f1f5f9" stroke-width="1" x1="0" x2="400" y1="120" y2="120"></line>
+<!-- Area Gradient (Primary) -->
+<path d="M0,130 C50,120 80,100 120,110 C160,120 200,60 250,50 C300,40 350,20 400,10 L400,150 L0,150 Z" fill="url(#grad-primary)" opacity="0.1"></path>
+<!-- Market Average Line (Gold) -->
+<path d="M0,120 C50,115 100,110 150,105 C200,100 250,90 300,85 C350,80 400,75" fill="none" stroke="#C5A059" stroke-dasharray="4,2" stroke-width="2"></path>
+<!-- Portfolio Line (Emerald) -->
+<path d="M0,130 C50,120 80,100 120,110 C160,120 200,60 250,50 C300,40 350,20 400,10" fill="none" stroke="#00614c" stroke-linecap="round" stroke-width="3"></path>
+<defs>
+<lineargradient id="grad-primary" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" style="stop-color:#00614c;stop-opacity:1"></stop>
+<stop offset="100%" style="stop-color:#00614c;stop-opacity:0"></stop>
+</lineargradient>
+</defs>
+</svg>
+</div>
+<div class="flex justify-between items-center px-1">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1.5">
+<span class="w-3 h-1 bg-primary rounded-full"></span>
+<span class="text-[10px] font-bold text-slate-500 uppercase">My Portfolio</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-3 h-1 bg-accent-gold rounded-full"></span>
+<span class="text-[10px] font-bold text-slate-500 uppercase">Market Avg.</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Detailed Reports List -->
+<section class="p-4">
+<h3 class="text-base font-bold tracking-tight mb-4 px-1">Recent Detailed Reports</h3>
+<div class="space-y-3">
+<!-- Report Item 1 -->
+<div class="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center gap-3 shadow-sm">
+<div class="h-14 w-14 rounded-md overflow-hidden bg-slate-100 flex-shrink-0">
+<img alt="Property" class="w-full h-full object-cover" data-alt="Modern house exterior facade for report thumbnail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZDZYrANUvRg1qLdTEFI1HFTURpQiheiUuY1yxiwzRe28bcT0PzorxRwwqoe8q833IqK0hFZ4d1d6v3knLQ364gj7JItIY2YH0j7qY-wyU-em89YSzkc1K5i_SU5B38R6MUAM-ZP0fRwGzGh5lZrcv0an8AGuV6SFU9gRAiaNI6G7OzbMtBOmH6EYJP49HvAoUzoL7AZCpC5V_shki_9Rtpy67RuUCHLunfw9DcMhyTX1ENRW9AxMxuJQ8KDjWohXQDWbmUHzRPcE"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold truncate text-slate-800 dark:text-slate-100">882 O'Farrell St, SF</p>
+<p class="text-[11px] font-medium text-slate-400">Valued Oct 24, 2023 • 2.4 MB</p>
+</div>
+<button class="h-10 w-10 flex items-center justify-center bg-primary/10 text-primary rounded-full hover:bg-primary hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">picture_as_pdf</span>
+</button>
+</div>
+<!-- Report Item 2 -->
+<div class="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center gap-3 shadow-sm">
+<div class="h-14 w-14 rounded-md overflow-hidden bg-slate-100 flex-shrink-0">
+<img alt="Property" class="w-full h-full object-cover" data-alt="Residential suburban home thumbnail for report list" src="https://lh3.googleusercontent.com/aida-public/AB6AXuALguWfdFRGVFIccJgd2FV0Qj2FMHVGQNrHyjNsctnM2cxGbGhDo_frgz0DQgNum_aE0ohXQtzrDD_KR3l2DBMZUZ6-Sd34tQmXhkgKt2FGPn9M5E1Cy850rS9P6Ag5djgN3YjoWAWHkH3GUDeUDOBRZkgQok79VUXodYT-Ro5Qgc7kRzk4nlaDx07czMDrJ-J8n00bTJ599_h9w4ztSIfNBDfUoxyXObi6eWfhUs19FaRlW_IEEInOD1fOZgbVjyWmWfK6LXtlfQA"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold truncate text-slate-800 dark:text-slate-100">1204 Mission District, CA</p>
+<p class="text-[11px] font-medium text-slate-400">Valued Oct 18, 2023 • 1.9 MB</p>
+</div>
+<button class="h-10 w-10 flex items-center justify-center bg-primary/10 text-primary rounded-full hover:bg-primary hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">picture_as_pdf</span>
+</button>
+</div>
+<!-- Report Item 3 -->
+<div class="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center gap-3 shadow-sm">
+<div class="h-14 w-14 rounded-md overflow-hidden bg-slate-100 flex-shrink-0">
+<img alt="Property" class="w-full h-full object-cover" data-alt="Bright interior living room for property valuation thumbnail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB2_ofGUWhewKLMcDJbU4KuG3fTLH1nHiSaJbGk34rsbZKbZVdPul7AARPPax4YnMtea_Cid2rIGA9GmrU7d6SmHKD_xQEPk2awZRVqs8JNvzz4k2J19FK_ZXvwWAuQRbStBGB9UxzNUR38bRMh5xGqp1Bb7SY5YxohoG1or7gD4VyqtDz5eG7LAxDKxX3A_ujOPigjPHhwYapPMdy-0E73tdXJ0MuzbzrudVqh7oYujPWG1CCaIPBErQz8GTkq3cp0kfkMra6-_Us"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold truncate text-slate-800 dark:text-slate-100">92 Maple Avenue, Berkeley</p>
+<p class="text-[11px] font-medium text-slate-400">Valued Oct 12, 2023 • 3.1 MB</p>
+</div>
+<button class="h-10 w-10 flex items-center justify-center bg-primary/10 text-primary rounded-full hover:bg-primary hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">picture_as_pdf</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 left-0 right-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 px-6 pb-6 pt-3">
+<div class="flex items-center justify-between max-w-md mx-auto">
+<button class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined text-[26px]">home</span>
+<span class="text-[10px] font-bold">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined text-[26px]">map</span>
+<span class="text-[10px] font-bold">Map</span>
+</button>
+<button class="flex flex-col items-center justify-center -mt-8 bg-primary h-14 w-14 rounded-full text-white shadow-lg shadow-primary/30 border-4 border-white dark:border-slate-900">
+<span class="material-symbols-outlined text-[30px]">center_focus_strong</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-[26px] fill-[1]">analytics</span>
+<span class="text-[10px] font-bold">Reports</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined text-[26px]">person</span>
+<span class="text-[10px] font-bold">Profile</span>
+</button>
+</div>
+</nav>
+</body></html>

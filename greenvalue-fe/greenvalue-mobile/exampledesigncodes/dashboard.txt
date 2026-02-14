@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GreenValue AI Dashboard - Light Mode</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#005f4b",
+                        "accent-gold": "#D4AF37",
+                        "background-light": "#FFFFFF",
+                        "text-dark": "#1A1A1A",
+                        "text-muted": "#666666",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        :root {
+            --primary-emerald: #005f4b;
+            --gold-accent: #D4AF37;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FFFFFF;
+            background-image: radial-gradient(#005f4b 0.5px, transparent 0.5px);
+            background-size: 20px 20px;
+            background-color: #ffffff;background-image: 
+                linear-gradient(rgba(0, 95, 75, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 95, 75, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+        .thermal-overlay {
+            background: linear-gradient(45deg, rgba(255, 0, 0, 0.3) 0%, rgba(255, 255, 0, 0.3) 50%, rgba(0, 0, 255, 0.2) 100%);
+            mix-blend-mode: overlay;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-text-dark min-h-screen flex flex-col font-display">
+<header class="flex items-center justify-between px-6 pt-8 pb-4 sticky top-0 bg-white/80 backdrop-blur-md z-30">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full border-2 border-primary/10 overflow-hidden shadow-sm">
+<img alt="Investor Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA_5xcI5uWl2a0sTOs7qdsyYKBo8uUXxFyC_Kk6LOTKjJnBDU9GTWt1ZnTslXQhM0NTSaCuP5CX7ZZuR0be6eYHJIdqsHstl2i82Te_dEPmXIo-AS5hIDWLz98_cNoqgNB9yTqCVynT05DbBiDxRyVTXnVPz6t4m2oEh9FddfdL0kt9cBoL1npvOWXNh_UjFj5L_tydOTBY9A9e2P6vDbtyvEzg7k-qII_0YqqwLhyWSUQdNTffteerA0zyLSsC9MOFsGDZwgxRgu4"/>
+</div>
+<div>
+<p class="text-xs text-text-muted font-medium">Welcome back,</p>
+<h1 class="text-lg font-bold leading-none text-text-dark">Hello, Investor</h1>
+</div>
+</div>
+<button class="relative p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
+<span class="material-symbols-outlined text-text-dark">notifications</span>
+<span class="absolute top-2.5 right-2.5 size-2 bg-primary rounded-full border border-white"></span>
+</button>
+</header>
+<main class="flex-1 overflow-y-auto pb-32">
+<section class="px-6 py-4">
+<div class="bg-primary rounded-xl p-6 shadow-xl shadow-primary/20 text-white relative overflow-hidden">
+<div class="flex justify-between items-start mb-4 relative z-10">
+<div>
+<p class="text-white/80 text-sm font-medium">Total Portfolio Value</p>
+<p class="text-3xl font-bold mt-1 tracking-tight">$1,250,000</p>
+</div>
+<div class="flex items-center gap-1 bg-white/20 px-2 py-1 rounded-full backdrop-blur-md">
+<span class="material-symbols-outlined text-white text-sm font-bold">trending_up</span>
+<span class="text-white text-xs font-bold">+12.4%</span>
+</div>
+</div>
+<div class="h-24 w-full mt-6 relative z-10">
+<svg class="w-full h-full overflow-visible" viewBox="0 0 400 100">
+<defs>
+<linearGradient id="goldGradient" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#D4AF37" stop-opacity="0.4"></stop>
+<stop offset="100%" stop-color="#D4AF37" stop-opacity="0"></stop>
+</linearGradient>
+</defs>
+<path d="M0,80 Q40,75 80,40 T160,50 T240,20 T320,60 T400,10" fill="none" stroke="#D4AF37" stroke-linecap="round" stroke-width="3"></path>
+<path d="M0,80 Q40,75 80,40 T160,50 T240,20 T320,60 T400,10 L400,100 L0,100 Z" fill="url(#goldGradient)"></path>
+</svg>
+</div>
+<div class="flex justify-between mt-2 px-1 relative z-10">
+<span class="text-[10px] text-white/40 font-bold uppercase tracking-widest">Jan</span>
+<span class="text-[10px] text-white/40 font-bold uppercase tracking-widest">Mar</span>
+<span class="text-[10px] text-white/40 font-bold uppercase tracking-widest">May</span>
+<span class="text-[10px] text-white/40 font-bold uppercase tracking-widest">Jul</span>
+<span class="text-[10px] text-white font-bold uppercase tracking-widest">Now</span>
+</div>
+</div>
+</section>
+<section class="px-6 py-4">
+<button class="w-full bg-primary text-white font-bold py-5 rounded-xl flex items-center justify-center gap-3 shadow-lg shadow-primary/30 hover:shadow-primary/40 transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined font-bold">photo_camera</span>
+<span class="text-lg">Scan New Property</span>
+</button>
+</section>
+<section class="py-4">
+<div class="flex items-center justify-between px-6 mb-4">
+<h2 class="text-xl font-bold tracking-tight text-text-dark">Recent Scans</h2>
+<button class="text-primary text-sm font-bold">View All</button>
+</div>
+<div class="flex gap-4 overflow-x-auto px-6 no-scrollbar snap-x pb-4">
+<div class="min-w-[280px] snap-start bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+<div class="relative h-44 overflow-hidden">
+<img alt="Luxury Suburban House" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJbuVoDZ4XlwcT-YECPNAcdJQa9w3xILcVNlDKvXd4wfJwmv3TdB6MA94NlH67modD9jj5jDujdSSoQG8QVqEkvrzR_F9xI5s2yRutwhAlHc5lwNEOx5JQotSlKRjXPqW-biv7FzKxedkY2alv0g5Pqz8ZNFhhFS38cVLpKHplq-fE_uImF7NpeAeddKMg9iSffVf9adVMhw_LvGsuyM-pDBR6HXtU7hM14XwLJsabFgK8ipo3In_me06onfYU58nL5-pPqIf9LvM"/>
+<div class="absolute inset-0 thermal-overlay"></div>
+<div class="absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase">
+                        New Analysis
+                    </div>
+</div>
+<div class="p-4">
+<div class="flex justify-between items-center">
+<h3 class="font-bold text-lg text-text-dark">$250,000</h3>
+<span class="text-primary font-bold bg-primary/5 px-2 py-0.5 rounded text-xs border border-primary/10">Label B</span>
+</div>
+<p class="text-text-muted text-sm mt-1 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary">trending_up</span>
+                        ROI Potential: <span class="font-semibold text-text-dark">15%</span>
+</p>
+</div>
+</div>
+<div class="min-w-[280px] snap-start bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+<div class="relative h-44 overflow-hidden">
+<img alt="Modern Condo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEOL549Pwc9j7sWCAilfokkmGZdfgdGWD-O9-JAO5vVtuhPaf1qpOH_5NdQz7wFOxmjwE6R-euVeQlM5JJEz_ZWEMTNOOlOMO4CHAl8Hu45K0S9ipFld8b8eGza4Qbrayta-Zq-cWlHYugXMa-zlUxOvVnEdGLiu8RbIBsvVGLCJG21bWtYqCwea7A5ytNw_nLBIvKaTePngEpZtiuQ1MuA21Zsfd_B0auEzNGKtpFZZn4mA6XKXnNVtroxRgAzyBMifbE-r6x4CM"/>
+<div class="absolute inset-0 thermal-overlay opacity-60"></div>
+<div class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-text-dark text-[10px] font-bold px-2 py-1 rounded shadow-sm uppercase border border-gray-100">
+                        2 Days Ago
+                    </div>
+</div>
+<div class="p-4">
+<div class="flex justify-between items-center">
+<h3 class="font-bold text-lg text-text-dark">$410,000</h3>
+<span class="text-primary font-bold bg-primary/5 px-2 py-0.5 rounded text-xs border border-primary/10">Label A</span>
+</div>
+<p class="text-text-muted text-sm mt-1 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary">trending_up</span>
+                        ROI Potential: <span class="font-semibold text-text-dark">12%</span>
+</p>
+</div>
+</div>
+<div class="min-w-[280px] snap-start bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+<div class="relative h-44 overflow-hidden">
+<img alt="Traditional Villa" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrzavQrWQ6XhwS47Ktb-A6NuHquplFdr12F1zA-dErYpbWbL1S7BQAu7DLYnDJPcPvEeAd3IZKSNLhV8v8npuO9pWqZTqQF2ucqk2UDjYKio_fAcRIVQ8aC_GziNM5P4Deyb8fO_-GtyiQRFHiZG1QOb7g74ReDkM3EFx5OF6B_Uo7slxFZEX-cenrnanNhOHg1pnAUfyCbUtic2tmSa5d-b7fDrJuPF8-Y-XfJzxNouvAvs-XdSd0RDOHz9et87Wn8ZrkjyPvHeI"/>
+<div class="absolute inset-0 thermal-overlay opacity-80"></div>
+</div>
+<div class="p-4">
+<div class="flex justify-between items-center">
+<h3 class="font-bold text-lg text-text-dark">$320,000</h3>
+<span class="text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded text-xs border border-amber-200">Label C</span>
+</div>
+<p class="text-text-muted text-sm mt-1 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary">trending_up</span>
+                        ROI Potential: <span class="font-semibold text-text-dark">18%</span>
+</p>
+</div>
+</div>
+</div>
+</section>
+<section class="px-6 py-4">
+<div class="bg-primary/5 rounded-xl p-5 border border-primary/10 flex items-center gap-4">
+<div class="size-12 rounded-lg bg-primary text-white flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined">lightbulb</span>
+</div>
+<div>
+<h4 class="font-bold text-sm text-primary uppercase tracking-tight">Efficiency Insight</h4>
+<p class="text-xs text-text-muted leading-relaxed mt-1">Properties with <span class="font-semibold text-text-dark">Label A</span> ratings are seeing 8% higher rental yields this quarter.</p>
+</div>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-0 w-full bg-white/95 border-t border-gray-100 backdrop-blur-xl px-4 pb-8 pt-3 z-40">
+<div class="max-w-md mx-auto flex items-end justify-between px-4 relative">
+<div class="flex flex-col items-center gap-1 w-12 text-primary">
+<span class="material-symbols-outlined text-[28px] fill-1">home</span>
+<span class="text-[10px] font-bold">Home</span>
+</div>
+<div class="flex flex-col items-center gap-1 w-12 text-text-muted">
+<span class="material-symbols-outlined text-[28px]">map</span>
+<span class="text-[10px] font-medium">Map</span>
+</div>
+<div class="relative -top-8">
+<div class="bg-primary size-16 rounded-full flex items-center justify-center shadow-lg shadow-primary/30 border-4 border-white group active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-white font-bold text-3xl">add_a_photo</span>
+</div>
+</div>
+<div class="flex flex-col items-center gap-1 w-12 text-text-muted">
+<span class="material-symbols-outlined text-[28px]">analytics</span>
+<span class="text-[10px] font-medium">Reports</span>
+</div>
+<div class="flex flex-col items-center gap-1 w-12 text-text-muted">
+<span class="material-symbols-outlined text-[28px]">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</div>
+</div>
+</nav>
+
+</body></html>

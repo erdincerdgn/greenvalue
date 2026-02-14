@@ -1,0 +1,60 @@
+Here's a comprehensive list of all errors encountered and fixed during this session, plus remaining ones:
+
+✅ Fixed Errors
+#	Error	File	Root Cause	Fix
+1	'RAGConfig' object has no attribute 'chunk_overlap'	
+config.py
+ingestion.py
+ uses config.chunk_overlap but only child_chunk_overlap existed	Added @property chunk_overlap alias
+2	model 'llama3.2:1b' not found (404)	Ollama	Router uses llama3.2:1b but only 3b was pulled	Pulled llama3.2:1b model
+3	llm_model: str = "llama3" (wrong model)	
+config.py
+Pipeline LLM used llama3 which doesn't exist	Changed to llama3.2:3b
+4	'NoneType' object has no attribute 'log_query'	
+pipeline.py
+RAG init failed (due to #1), so _memory was None	Fixed by resolving #1
+5	[Errno 111] Connection refused	
+pipeline.py
+self._graph.get_graph_context() tries to connect to Neo4j (not running)	Wrapped in try/except
+6	YOLO11 service unavailable: Read timed out	
+vision_rag_integration.py
+Startup race condition — checks /health before FastAPI is ready	Made health check lazy
+7	Collection 'greenvalue_child' already exists! (409)	
+store.py
+_collection_exists
+ checked points_count > 0 — empty collections returned False	Changed to just check existence
+8	No PDF files found	
+pipeline.py
+ / 
+ingestion.py
+ingest_directory()
+ hardcoded /app/data/books, config had /app/data/knowledge_base/books	Passed config.knowledge_base_path and updated default to /app/infrastructure/qdrant/knowledge_base/books
+9	YOLO11 analysis failed: 404 (POST /analyze/property)	
+vision_rag_integration.py
+YOLO11Interface posts to /analyze/property which doesn't exist in 
+main.py
+Not yet fixed — needs endpoint or URL correction
+10	RAG system not wired to Vision-RAG	
+main.py
+MultiModalRAGPipeline()
+ created without rag_system param	Passed 
+get_rag_instance()
+ to constructor
+11	Default YOLO11 hostname ai-engine wrong	
+vision_rag_integration.py
+Service name doesn't resolve inside same container	Changed to localhost
+⚠️ Remaining / Future Issues
+#	Error	File	Status
+1	HTTP Error 403: Forbidden on PDF ingestion	
+ingestion.py
+Some PDFs (DRM/image-heavy) fail during OCR — needs error handling improvement
+2	/analyze/property endpoint missing	
+main.py
+YOLO11 vision analysis endpoint not created yet
+3	Neo4j/Graph DB not running	
+docker-compose.yml
+KnowledgeGraph needs a graph database — currently gracefully skipped
+4	Qdrant collections empty until ingestion completes	—	Ingestion running now, will resolve once complete
+5	Sustainable Construction book (441MB) may timeout/OOM	
+ingestion.py
+Very large PDF could cause issues during OCR processing
