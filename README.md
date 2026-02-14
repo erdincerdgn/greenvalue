@@ -1,143 +1,48 @@
-# GreenValue AI
+# 🌿GreenValue AI: Sustainable PropTech Ecosystem
 
-**GreenValue AI** is a comprehensive waste management and recycling platform designed to connect waste producers with recycling facilities, optimize logistics, and promote a circular economy. The platform provides tools for waste tracking, facility management, and data-driven insights to improve recycling efficiency.
+# 🚩The Problem: The "Invisibility" of Sustainable Value
+In the current real estate market, homeowners and investors face a critical information gap regarding energy efficiency and property valuation. 
+Traditional appraisal methods often overlook the financial benefits of sustainable retrofitting, leading to several key issues:
 
-## Features
+• Undervalued Green Assets: Properties with high-efficiency upgrades are often priced similarly to less efficient counterparts because the long term energy savings are not quantified during the sale.
 
-### For Waste Producers
-- **Waste Registration**: Easily register waste with detailed information including type, quantity, and photos.
-- **Facility Search**: Find nearby recycling facilities based on waste type and location.
-- **Logistics Management**: Schedule waste pickups and track transportation status.
-- **Waste Tracking**: Monitor waste flow from generation to final disposal.
-- **Reporting**: Generate reports on waste generation and recycling performance.
+• Knowledge Barrier: Most homeowners do not know which specific upgrades (e.g., triple-glazed windows vs. wall insulation) provide the best Return on Investment (ROI) for their specific building type.
 
-### For Recycling Facilities
-- **Facility Management**: Manage facility details, certifications, and capacity.
-- **Waste Reception**: Track incoming waste and manage acceptance processes.
-- **Processing Management**: Monitor waste processing operations.
-- **Inventory Management**: Track recycled materials and stock levels.
-- **Compliance**: Maintain records for environmental compliance and certifications.
+• The "Context Severing" Issue: Visual inspection data (what a surveyor sees) is rarely integrated with technical literature (IVS standards, energy books) in real-time, leading to subjective and inconsistent reporting.
 
-### Platform Features
-- **User Management**: Role-based access control for different user types.
-- **Notifications**: Real-time alerts for waste pickups, status updates, and facility activities.
-- **Search & Filtering**: Advanced search capabilities for facilities and waste types.
-- **Dashboard**: Visual overview of waste management operations and key metrics.
-- **Data Analytics**: Insights into recycling efficiency and environmental impact.
+• Carbon Footprint Stagnation: Without a clear financial incentive (Value Gain), the adoption of green technologies in the residential sector remains slow.
 
-## Tech Stack
+# 💡The Solution: Multimodal Intelligence for Real Estate
 
-### Frontend
-- **Framework**: Angular 20
-- **UI Components**: Angular Material
-- **Mapping**: Leaflet with Angular Leaflet Directive
-- **Charts**: ngx-charts
-- **State Management**: RxJS
-- **Build Tool**: Angular CLI
+GreenValue AI solves these problems by creating a digital bridge between a property's physical state and global sustainability knowledge. Our solution operates through a three-pillared AI engine:
 
-### Backend
-- **Framework**: ASP.NET Core 8
-- **Language**: C#
-- **Database**: PostgreSQL
-- **ORM**: Entity Framework Core
-- **Authentication**: JWT Authentication
-- **API**: RESTful API with Swagger/OpenAPI
+1. Computer Vision (The "Eyes")
 
-### Infrastructure
-- **Containerization**: Docker
-- **Container Orchestration**: Docker Compose
-- **Cloud Platform**: Azure (App Service, PostgreSQL, Blob Storage)
-- **CI/CD**: GitHub Actions
+Using YOLO11m-seg, the system performs instance segmentation on property photos to detect and measure building components like windows, doors, facades, and HVAC units. This provides objective, data-driven input for analysis rather than relying on manual notes.
 
-## Getting Started
+2. Physics-Based Logic (The "Analyzer")
 
-### Prerequisites
-- [.NET 8 SDK](https://dotnet.microsoft.com/download)
-- [Node.js](https://nodejs.org/)
-- [Angular CLI](https://angular.io/cli)
-- [Docker](https://www.docker.com/)
+The detected components are processed through a custom Physics Engine that calculates U-Values and annual heat loss (kWh) based on the material's thermal conductivity. This quantifies exactly how much money is "leaking" out of the building.
 
-### Installation
+3. Professional RAG (The "Brain")
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd GreenValue AI
-   ```
+We utilize Retrieval-Augmented Generation (RAG) to connect visual detections with professional literature.
 
-2. **Backend Setup**
-   ```bash
-   cd GreenValue.Api
-   dotnet restore
-   dotnet ef database update
-   ```
+• Contextual Routing: The system classifies queries into domains like Legal, Finance, or Energy to fetch the most relevant data.
 
-3. **Frontend Setup**
-   ```bash
-   cd ../GreenValue.Client
-   npm install
-   ```
+• Evidence-Based Suggestions: When a deficiency is found, the RAG fetches specific ROI tables and renovation costs from authoritative sources like J. Scott or IVS Standards, providing a verifiable "Valuation Impact" report.
 
-4. **Run the Application**
-   ```bash
-   # Run backend
-   cd ../GreenValue.Api
-   dotnet run
-   
-   # Run frontend
-   cd ../GreenValue.Client
-   ng serve
-   ```
+# ✨Key Advantages
 
-## Project Structure
+• Data-Driven Accuracy: By using YOLO11, we minimize human error in property inspections, achieving high confidence levels (up to 98%) in component detection.
 
-```
-GreenValue AI/
-├── GreenValue.Api/             # Backend API
-│   ├── Controllers/            # API Controllers
-│   ├── Models/                 # Data Models
-│   ├── Services/               # Business Logic
-│   ├── Data/                   # Database Context
-│   └── ...
-├── GreenValue.Client/          # Frontend Application
-│   ├── src/                    # Source Code
-│   │   ├── app/                # Angular Components
-│   │   ├── assets/             # Static Assets
-│   │   ├── environments/       # Environment Configurations
-│   │   └── ...
-│   └── ...
-├── docker-compose.yml          # Docker Compose Configuration
-├── Dockerfile                  # Dockerfiles for services
-└── README.md                   # Project Documentation
-```
+• Multimodal Synergy: Unlike standard chatbots, GreenValue AI combines Image Metadata, Vector Text Retrieval, and Graph Databases (Neo4j) to provide a holistic view of property value.
 
-## License
+• Financial Transparency: We turn "being green" into a financial metric. By showing the Value Gain and Payback Years for each upgrade, we make sustainability a profitable choice for investors.
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+• Scalable Geospatial Context: Integration with PostGIS and CARTO allows the system to factor in regional demographics and market trends, ensuring that a valuation in Istanbul is as accurate as one in Austin, Texas.
 
-## Contributing
+• Permanent Infrastructure: By utilizing open-source libraries like deck.gl and OpenStreetMap, the platform remains fully functional and independent of costly third-party mapping subscriptions.
 
-Contributions are welcome! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
-
-## Contact
-
-For questions or support, please contact:
-- **Email**: [EMAIL_ADDRESS]
-- **Website**: [https://greenvalue.ai](https://greenvalue.ai)
-
-## Acknowledgments
-
-- [Angular](https://angular.io/)
-- [ASP.NET Core](https://dotnet.microsoft.com/)
-- [Leaflet](https://leafletjs.com/)
-- [Angular Material](https://material.angular.io/)
-- [PostgreSQL](https://www.postgresql.org/)
-- [Docker](https://www.docker.com/)
-
-## Support
-
-If you find this project useful, please consider giving it a star ⭐!
-
----
-
-*Built with ❤️ for a sustainable future*
+# 🎓Note for Texas State University Admissions
+This project demonstrates my proficiency in Machine Learning (YOLO), Advanced Data Structures (Graph/Vector DBs), and Full-Stack Engineering. It reflects my commitment to using Computer Science as a tool for solving global environmental and economic challenges.
