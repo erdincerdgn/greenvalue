@@ -37,7 +37,7 @@ async function bootstrap() {
 
     // Global prefix for all routes (except health checks)
     app.setGlobalPrefix('api', {
-        exclude: ['/', 'health', 'health/ready', 'health/live', 'docs'],
+        exclude: ['/', 'health', 'health/ready', 'health/live', 'docs', 'metrics'],
     });
 
     // ==========================================

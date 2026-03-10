@@ -267,7 +267,7 @@ export class SimilarPropertyDto {
 // REPORT GENERATION DTOs
 // ============================================================
 
-export class GenerateReportDto {
+export class AiGenerateReportDto {
     @ApiProperty({ description: 'Analysis ID to generate report for' })
     @IsUUID()
     analysisId: string;
@@ -282,7 +282,7 @@ export class GenerateReportDto {
     includeRenovations?: boolean;
 }
 
-export class ReportResponseDto {
+export class AiReportResponseDto {
     @ApiProperty()
     reportId: string;
 

@@ -60,6 +60,21 @@ class Settings(BaseSettings):
     # --- MLflow ---
     mlflow_tracking_uri: str = Field(default="http://localhost:5000", alias="MLFLOW_TRACKING_URI")
 
+    # --- Self-reference (Vision-RAG calls back to its own API) ---
+    cv_service_url: str = Field(default="http://localhost:8000", alias="CV_SERVICE_URL")
+
+    # --- Neo4j (Knowledge Graph) ---
+    neo4j_uri: str = Field(default="bolt://localhost:7687", alias="NEO4J_URI")
+    neo4j_user: str = Field(default="neo4j", alias="NEO4J_USER")
+    neo4j_password: str = Field(default="greenvalue_secret", alias="NEO4J_PASSWORD")
+    neo4j_database: str = Field(default="neo4j", alias="NEO4J_DATABASE")
+
+    # --- Unstructured API (OCR) ---
+    unstructured_api_url: str = Field(
+        default="http://localhost:8001/general/v0/general",
+        alias="UNSTRUCTURED_API_URL",
+    )
+
     # --- Prometheus Metrics ---
     metrics_port: int = Field(default=9090, alias="METRICS_PORT")
 

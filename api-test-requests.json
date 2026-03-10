@@ -1,0 +1,947 @@
+[
+  {
+    "name": "Health Check",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/health",
+    "headers": {},
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "Liveness Probe",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/health/live",
+    "headers": {},
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "Readiness Probe",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/health/ready",
+    "headers": {},
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "Prometheus Metrics",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/metrics",
+    "headers": {},
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "Register User",
+    "method": "POST",
+    "url": "http://192.168.1.106:4000/api/v1/auth/register",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "email": "testuser@example.com",
+      "fullName": "Test User",
+      "password": "SecurePass123!",
+      "phone": "+905359999999",
+      "role": "OWNER"
+    }
+  },
+  {
+    "name": "Login",
+    "method": "POST",
+    "url": "http://192.168.1.106:4000/api/v1/auth/login",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "email": "mehmet.yilmaz@example.com",
+      "password": "Test1234!",
+      "rememberMe": true
+    }
+  },
+  {
+    "name": "Admin Login",
+    "method": "POST",
+    "url": "http://192.168.1.106:4000/api/v1/auth/login-admin",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "email": "admin@greenvalue.ai",
+      "password": "Test1234!"
+    }
+  },
+  {
+    "name": "Forgot Password",
+    "method": "POST",
+    "url": "http://192.168.1.106:4000/api/v1/auth/forgot-password",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "email": "mehmet.yilmaz@example.com"
+    }
+  },
+  {
+    "name": "Reset Password",
+    "method": "POST",
+    "url": "http://192.168.1.106:4000/api/v1/auth/reset-password",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "token": "reset-token-from-email",
+      "newPassword": "NewPass123!",
+      "confirmPassword": "NewPass123!"
+    }
+  },
+  {
+    "name": "Get Current User (Auth Me)",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/auth/me",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}"
+    },
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "Update Profile (Auth)",
+    "method": "PUT",
+    "url": "http://192.168.1.106:4000/api/v1/auth/profile",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}",
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "fullName": "Updated Name",
+      "phone": "+905359999999",
+      "avatar": "avatars/user123.jpg"
+    }
+  },
+  {
+    "name": "Change Password",
+    "method": "POST",
+    "url": "http://192.168.1.106:4000/api/v1/auth/change-password",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}",
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "currentPassword": "Test1234!",
+      "newPassword": "NewPass456!",
+      "confirmPassword": "NewPass456!"
+    }
+  },
+  {
+    "name": "Get Admin User Profile",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/auth/admin/users/me",
+    "headers": {
+      "Authorization": "Bearer {{ADMIN_JWT_TOKEN}}"
+    },
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "Google OAuth (Browser)",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/auth/google",
+    "headers": {},
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "GitHub OAuth (Browser)",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/auth/github",
+    "headers": {},
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "Create Property",
+    "method": "POST",
+    "url": "http://192.168.1.106:4000/api/v1/properties",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}",
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "title": "Riverside Apartment Block A",
+      "address": "Keizersgracht 123",
+      "city": "Amsterdam",
+      "district": "Centrum",
+      "buildingYear": 1985,
+      "buildingType": "apartment",
+      "floorArea": 120.5,
+      "latitude": 52.3676,
+      "longitude": 4.9041
+    }
+  },
+  {
+    "name": "List My Properties",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/properties",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}"
+    },
+    "path_params": {},
+    "query_params": {
+      "page": "1",
+      "limit": "10",
+      "city": "Amsterdam",
+      "buildingType": "apartment",
+      "sortBy": "createdAt",
+      "sortDirection": "desc"
+    }
+  },
+  {
+    "name": "Admin List All Properties",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/properties/admin/all",
+    "headers": {
+      "Authorization": "Bearer {{ADMIN_JWT_TOKEN}}"
+    },
+    "path_params": {},
+    "query_params": {
+      "page": "1",
+      "limit": "20"
+    }
+  },
+  {
+    "name": "Get Property By ID",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/properties/{property_id}",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}"
+    },
+    "path_params": {
+      "property_id": "{{PROPERTY_ID}}"
+    },
+    "query_params": {}
+  },
+  {
+    "name": "Update Property",
+    "method": "PATCH",
+    "url": "http://192.168.1.106:4000/api/v1/properties/{property_id}",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}",
+      "Content-Type": "application/json"
+    },
+    "path_params": {
+      "property_id": "{{PROPERTY_ID}}"
+    },
+    "query_params": {},
+    "body": {
+      "title": "Updated Property Title",
+      "buildingYear": 1990,
+      "floorArea": 135.0
+    }
+  },
+  {
+    "name": "Get Upload URL",
+    "method": "POST",
+    "url": "http://192.168.1.106:4000/api/v1/properties/{property_id}/upload-url",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}",
+      "Content-Type": "application/json"
+    },
+    "path_params": {
+      "property_id": "{{PROPERTY_ID}}"
+    },
+    "query_params": {},
+    "body": {
+      "fileName": "photo_001.jpg",
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "name": "Delete Property",
+    "method": "DELETE",
+    "url": "http://192.168.1.106:4000/api/v1/properties/{property_id}",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}"
+    },
+    "path_params": {
+      "property_id": "{{PROPERTY_ID}}"
+    },
+    "query_params": {}
+  },
+  {
+    "name": "Submit Analysis",
+    "method": "POST",
+    "url": "http://192.168.1.106:4000/api/v1/analysis/analyze",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}",
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "imageKey": "properties/{{PROPERTY_ID}}/photo.jpg",
+      "propertyId": "{{PROPERTY_ID}}",
+      "buildingType": "apartment",
+      "buildingYear": 1985,
+      "confidenceThreshold": 0.25
+    }
+  },
+  {
+    "name": "Get Analysis Status",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/analysis/status/{job_id}",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}"
+    },
+    "path_params": {
+      "job_id": "{{JOB_ID}}"
+    },
+    "query_params": {}
+  },
+  {
+    "name": "Calculate U-Value (Backend Proxy)",
+    "method": "POST",
+    "url": "http://192.168.1.106:4000/api/v1/analysis/u-value",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}",
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "layers": ["brick_solid", "mineral_wool_50mm", "plasterboard"],
+      "thicknesses": [240, 50, 12.5],
+      "buildingYear": 1985
+    }
+  },
+  {
+    "name": "Get Materials (Backend Proxy)",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/analysis/materials",
+    "headers": {},
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "Find Similar Properties (Backend Proxy)",
+    "method": "POST",
+    "url": "http://192.168.1.106:4000/api/v1/analysis/similar",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}",
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "propertyId": "{{PROPERTY_ID}}",
+      "limit": 5,
+      "minScore": 0.7
+    }
+  },
+  {
+    "name": "Generate Report (AI Proxy)",
+    "method": "POST",
+    "url": "http://192.168.1.106:4000/api/v1/analysis/report",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}",
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "analysisId": "{{ANALYSIS_ID}}",
+      "format": "PDF",
+      "includeRenovations": true
+    }
+  },
+  {
+    "name": "AI Engine Health (Backend Proxy)",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/analysis/ai-health",
+    "headers": {},
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "Generate Report (Reports Module)",
+    "method": "POST",
+    "url": "http://192.168.1.106:4000/api/v1/reports",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}",
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "analysisId": "{{ANALYSIS_ID}}",
+      "format": "PDF",
+      "reportType": "FULL_IVS",
+      "language": "en"
+    }
+  },
+  {
+    "name": "List My Reports",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/reports",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}"
+    },
+    "path_params": {},
+    "query_params": {
+      "page": "1",
+      "limit": "10",
+      "format": "PDF",
+      "reportType": "FULL_IVS"
+    }
+  },
+  {
+    "name": "Get Reports By Property",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/reports/property/{property_id}",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}"
+    },
+    "path_params": {
+      "property_id": "{{PROPERTY_ID}}"
+    },
+    "query_params": {
+      "page": "1",
+      "limit": "10"
+    }
+  },
+  {
+    "name": "Get Report By ID",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/reports/{report_id}",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}"
+    },
+    "path_params": {
+      "report_id": "{{REPORT_ID}}"
+    },
+    "query_params": {}
+  },
+  {
+    "name": "Get Report Preview",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/reports/{report_id}/preview",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}"
+    },
+    "path_params": {
+      "report_id": "{{REPORT_ID}}"
+    },
+    "query_params": {}
+  },
+  {
+    "name": "Delete Report",
+    "method": "DELETE",
+    "url": "http://192.168.1.106:4000/api/v1/reports/{report_id}",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}"
+    },
+    "path_params": {
+      "report_id": "{{REPORT_ID}}"
+    },
+    "query_params": {}
+  },
+  {
+    "name": "Get Current User (Users Module)",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/users/me",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}"
+    },
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "Get User Stats",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/users/me/stats",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}"
+    },
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "Update My Profile (Users Module)",
+    "method": "PATCH",
+    "url": "http://192.168.1.106:4000/api/v1/users/me/profile",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}",
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "fullName": "Updated Name",
+      "phone": "+905359999999",
+      "avatar": "avatars/me.jpg"
+    }
+  },
+  {
+    "name": "Admin List Users",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/users/admin/list",
+    "headers": {
+      "Authorization": "Bearer {{ADMIN_JWT_TOKEN}}"
+    },
+    "path_params": {},
+    "query_params": {
+      "page": "1",
+      "limit": "20",
+      "role": "OWNER",
+      "isActive": "true",
+      "sortBy": "createdAt",
+      "sortDirection": "desc"
+    }
+  },
+  {
+    "name": "Admin Search Users",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/users/admin/search",
+    "headers": {
+      "Authorization": "Bearer {{ADMIN_JWT_TOKEN}}"
+    },
+    "path_params": {},
+    "query_params": {
+      "searchTerm": "erdinc",
+      "page": "1",
+      "limit": "20"
+    }
+  },
+  {
+    "name": "Admin Get User By ID",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/users/admin/{user_id}",
+    "headers": {
+      "Authorization": "Bearer {{ADMIN_JWT_TOKEN}}"
+    },
+    "path_params": {
+      "user_id": "{{USER_ID}}"
+    },
+    "query_params": {}
+  },
+  {
+    "name": "Admin Update User",
+    "method": "PATCH",
+    "url": "http://192.168.1.106:4000/api/v1/users/admin/{user_id}",
+    "headers": {
+      "Authorization": "Bearer {{ADMIN_JWT_TOKEN}}",
+      "Content-Type": "application/json"
+    },
+    "path_params": {
+      "user_id": "{{USER_ID}}"
+    },
+    "query_params": {},
+    "body": {
+      "role": "ADMIN",
+      "isActive": true
+    }
+  },
+  {
+    "name": "My Audit History",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/audit/my-history",
+    "headers": {
+      "Authorization": "Bearer {{JWT_TOKEN}}"
+    },
+    "path_params": {},
+    "query_params": {
+      "days": "7",
+      "limit": "50",
+      "action": "LOGIN",
+      "entity": "Property"
+    }
+  },
+  {
+    "name": "Admin Get User Audit History",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/audit/history/{user_id}",
+    "headers": {
+      "Authorization": "Bearer {{ADMIN_JWT_TOKEN}}"
+    },
+    "path_params": {
+      "user_id": "{{USER_ID}}"
+    },
+    "query_params": {
+      "days": "30",
+      "limit": "100"
+    }
+  },
+  {
+    "name": "Admin Export Audit Logs",
+    "method": "GET",
+    "url": "http://192.168.1.106:4000/api/v1/audit/export/{user_id}",
+    "headers": {
+      "Authorization": "Bearer {{ADMIN_JWT_TOKEN}}"
+    },
+    "path_params": {
+      "user_id": "{{USER_ID}}"
+    },
+    "query_params": {
+      "startDate": "2026-01-01T00:00:00Z",
+      "endDate": "2026-03-03T00:00:00Z"
+    }
+  },
+  {
+    "name": "AI Engine Root",
+    "method": "GET",
+    "url": "http://192.168.1.106:8000/",
+    "headers": {},
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "AI Engine Health",
+    "method": "GET",
+    "url": "http://192.168.1.106:8000/health",
+    "headers": {},
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "AI Engine Metrics",
+    "method": "GET",
+    "url": "http://192.168.1.106:8000/metrics",
+    "headers": {},
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "AI Analyze (MinIO Key)",
+    "method": "POST",
+    "url": "http://192.168.1.106:8000/api/v1/analyze",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "file_key": "properties/{{PROPERTY_ID}}/photo.jpg",
+      "property_id": "{{PROPERTY_ID}}",
+      "model_size": "m"
+    }
+  },
+  {
+    "name": "AI Analyze Upload (Direct)",
+    "method": "POST",
+    "url": "http://192.168.1.106:8000/api/v1/analyze/upload",
+    "headers": {
+      "Content-Type": "multipart/form-data"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body_type": "multipart",
+    "body": {
+      "file": "@building_photo.jpg"
+    }
+  },
+  {
+    "name": "AI Get Analysis Result",
+    "method": "GET",
+    "url": "http://192.168.1.106:8000/api/v1/analyze/{job_id}",
+    "headers": {},
+    "path_params": {
+      "job_id": "{{JOB_ID}}"
+    },
+    "query_params": {}
+  },
+  {
+    "name": "AI Calculate U-Value",
+    "method": "POST",
+    "url": "http://192.168.1.106:8000/api/v1/u-value",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "component_type": "facade",
+      "material": "brick_solid",
+      "thickness_mm": 240.0,
+      "building_year": 1985
+    }
+  },
+  {
+    "name": "AI Get Materials",
+    "method": "GET",
+    "url": "http://192.168.1.106:8000/api/v1/materials",
+    "headers": {},
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "AI Model Info",
+    "method": "GET",
+    "url": "http://192.168.1.106:8000/api/v1/model/info",
+    "headers": {},
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "RAG Query",
+    "method": "POST",
+    "url": "http://192.168.1.106:8000/api/v1/rag/query",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "question": "What is the standard U-value for a brick facade?",
+      "category": "Sustainability",
+      "user_id": "default"
+    }
+  },
+  {
+    "name": "RAG Ingest Knowledge Base",
+    "method": "POST",
+    "url": "http://192.168.1.106:8000/api/v1/rag/ingest",
+    "headers": {},
+    "path_params": {},
+    "query_params": {
+      "force_recreate": "false"
+    }
+  },
+  {
+    "name": "RAG Ingest Single File",
+    "method": "POST",
+    "url": "http://192.168.1.106:8000/api/v1/rag/ingest/file",
+    "headers": {
+      "Content-Type": "multipart/form-data"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body_type": "multipart",
+    "body": {
+      "file": "@energy_standards.pdf"
+    }
+  },
+  {
+    "name": "RAG Status",
+    "method": "GET",
+    "url": "http://192.168.1.106:8000/api/v1/rag/status",
+    "headers": {},
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "RAG Feedback",
+    "method": "POST",
+    "url": "http://192.168.1.106:8000/api/v1/rag/feedback",
+    "headers": {},
+    "path_params": {},
+    "query_params": {
+      "query_id": "42",
+      "helpful": "true",
+      "feedback_text": "Very accurate answer"
+    }
+  },
+  {
+    "name": "Vision-RAG Analyze",
+    "method": "POST",
+    "url": "http://192.168.1.106:8000/api/v1/vision-rag/analyze",
+    "headers": {
+      "Content-Type": "multipart/form-data"
+    },
+    "path_params": {},
+    "query_params": {
+      "property_id": "{{PROPERTY_ID}}",
+      "user_id": "default",
+      "include_rag_insights": "true"
+    },
+    "body_type": "multipart",
+    "body": {
+      "file": "@building_photo.jpg"
+    }
+  },
+  {
+    "name": "Vision-RAG Get Result",
+    "method": "GET",
+    "url": "http://192.168.1.106:8000/api/v1/vision-rag/result/{job_id}",
+    "headers": {},
+    "path_params": {
+      "job_id": "{{JOB_ID}}"
+    },
+    "query_params": {}
+  },
+  {
+    "name": "OCR Process Document",
+    "method": "POST",
+    "url": "http://192.168.1.106:8000/api/v1/ocr/process",
+    "headers": {
+      "Content-Type": "multipart/form-data"
+    },
+    "path_params": {},
+    "query_params": {
+      "strategy": "hi_res",
+      "languages": "eng,tur,deu",
+      "page_start": "1",
+      "page_end": "5"
+    },
+    "body_type": "multipart",
+    "body": {
+      "file": "@document.pdf"
+    }
+  },
+  {
+    "name": "OCR Status",
+    "method": "GET",
+    "url": "http://192.168.1.106:8000/api/v1/ocr/status",
+    "headers": {},
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "Graph Status",
+    "method": "GET",
+    "url": "http://192.168.1.106:8000/api/v1/graph/status",
+    "headers": {},
+    "path_params": {},
+    "query_params": {}
+  },
+  {
+    "name": "Graph Context Query",
+    "method": "GET",
+    "url": "http://192.168.1.106:8000/api/v1/graph/context",
+    "headers": {},
+    "path_params": {},
+    "query_params": {
+      "query": "brick facade insulation"
+    }
+  },
+  {
+    "name": "Graph Upsert Property",
+    "method": "POST",
+    "url": "http://192.168.1.106:8000/api/v1/graph/property",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "property_id": "{{PROPERTY_ID}}",
+      "address": "Keizersgracht 123",
+      "property_type": "residential",
+      "building_year": 1985,
+      "energy_label": "D",
+      "area_sqm": 120.5,
+      "metadata": {}
+    }
+  },
+  {
+    "name": "Graph Find Similar Properties",
+    "method": "GET",
+    "url": "http://192.168.1.106:8000/api/v1/graph/property/{property_id}/similar",
+    "headers": {},
+    "path_params": {
+      "property_id": "{{PROPERTY_ID}}"
+    },
+    "query_params": {
+      "limit": "10"
+    }
+  },
+  {
+    "name": "Graph Ripple Effects",
+    "method": "GET",
+    "url": "http://192.168.1.106:8000/api/v1/graph/ripple-effects/{improvement}",
+    "headers": {},
+    "path_params": {
+      "improvement": "insulation_upgrade"
+    },
+    "query_params": {}
+  },
+  {
+    "name": "AI Report Generate (Metadata)",
+    "method": "POST",
+    "url": "http://192.168.1.106:8000/api/v1/report/generate",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "property_id": "{{PROPERTY_ID}}",
+      "report_type": "full_ivs",
+      "language": "en",
+      "include_heatmap": true,
+      "include_charts": true,
+      "currency_symbol": "€",
+      "currency_code": "EUR",
+      "analysis_result": {}
+    }
+  },
+  {
+    "name": "AI Report Generate PDF",
+    "method": "POST",
+    "url": "http://192.168.1.106:8000/api/v1/report/generate/pdf",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "property_id": "{{PROPERTY_ID}}",
+      "report_type": "full_ivs",
+      "language": "en",
+      "include_heatmap": true,
+      "include_charts": true,
+      "currency_symbol": "€",
+      "currency_code": "EUR",
+      "analysis_result": {}
+    }
+  },
+  {
+    "name": "AI Report Generate JSON",
+    "method": "POST",
+    "url": "http://192.168.1.106:8000/api/v1/report/generate/json",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "path_params": {},
+    "query_params": {},
+    "body": {
+      "property_id": "{{PROPERTY_ID}}",
+      "report_type": "summary",
+      "language": "en",
+      "analysis_result": {}
+    }
+  },
+  {
+    "name": "AI Report IVS Sections",
+    "method": "GET",
+    "url": "http://192.168.1.106:8000/api/v1/report/ivs-sections",
+    "headers": {},
+    "path_params": {},
+    "query_params": {
+      "language": "en"
+    }
+  },
+  {
+    "name": "AI Report Books (RAG Library)",
+    "method": "GET",
+    "url": "http://192.168.1.106:8000/api/v1/report/books",
+    "headers": {},
+    "path_params": {},
+    "query_params": {}
+  }
+]

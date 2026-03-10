@@ -1,6 +1,7 @@
 import {
     Controller,
     Get,
+    Post,
     Patch,
     Param,
     Body,
@@ -59,6 +60,18 @@ export class UserController {
         @Body() dto: UpdateUserProfileDto,
     ) {
         return this.userService.updateProfile(userId, dto);
+    }
+
+    @Post('me/avatar-upload-url')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Get pre-signed upload URL for user avatar' })
+    async getAvatarUploadUrl(
+        @CurrentUser('id') userId: string,
+        @Body() dto: { fileName: string; contentType: string },
+    ) {
+        return this.userService.getAvatarUploadUrl(userId, dto.fileName);
     }
 
     // ─── Admin Endpoints ─────────────────────────────────

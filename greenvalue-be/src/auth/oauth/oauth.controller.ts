@@ -1,6 +1,6 @@
 import { Controller, Get, UseGuards, Req, Res } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { Response } from 'express';
+import { FastifyReply } from 'fastify';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth.service';
 import { Public } from '../rbac/decorators';
@@ -31,7 +31,7 @@ export class OAuthController {
     @Public()
     @Get('google/callback')
     @UseGuards(AuthGuard('google'))
-    async googleCallback(@Req() req: any, @Res() res: Response): Promise<void> {
+    async googleCallback(@Req() req: any, @Res() res: FastifyReply): Promise<void> {
         const user = req.user;
 
         // Find or create user in database
@@ -68,7 +68,7 @@ export class OAuthController {
     @Public()
     @Get('github/callback')
     @UseGuards(AuthGuard('github'))
-    async githubCallback(@Req() req: any, @Res() res: Response): Promise<void> {
+    async githubCallback(@Req() req: any, @Res() res: FastifyReply): Promise<void> {
         const user = req.user;
 
         // Find or create user in database

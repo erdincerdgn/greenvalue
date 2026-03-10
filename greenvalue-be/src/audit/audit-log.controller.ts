@@ -9,7 +9,7 @@ import { CurrentUser } from '../common/decorators/roles.decorator';
  * Audit Log Controller for GreenValue AI Platform
  */
 @ApiTags('Audit')
-@Controller('api/v1/audit')
+@Controller('audit')
 @UseGuards(JwtAuthGuard)
 export class AuditLogController {
     constructor(private readonly auditService: AuditLogService) {}

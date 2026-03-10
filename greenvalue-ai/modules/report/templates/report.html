@@ -1,0 +1,488 @@
+{# ═══════════════════════════════════════════════════════════════════
+     GreenValue AI — IVS 2025 Valuation Report Template
+
+     Stack:  Jinja2 + Tailwind-inspired inline CSS + WeasyPrint
+     ─────────────────────────────────────────────────────────────
+     To change the report design:
+       1. Edit this HTML file only
+       2. No Python code changes needed
+       3. Rebuild PDF:  await renderer.render(...)
+
+     Variables available (from pdf_renderer.py context):
+       report, cover, scope, property, energy, renovation,
+       reconciliation, valuation_approaches, glossary_terms,
+       data_sources, sections (pre-built), charts (b64 dict),
+       cover_photo, heatmap, language, currency, branding,
+       ivs_warnings, fmt_currency
+   ═══════════════════════════════════════════════════════════════════ #}
+<!DOCTYPE html>
+<html lang="{{ language }}" style="--accent: {{ branding.accent_color | default('#2E7D32') }}; --accent-dark: {{ branding.accent_dark_color | default('#1B5E20') }};">
+<head>
+<meta charset="utf-8">
+<title>GreenValue Valuation Report — {{ cover.report_number }}</title>
+<style>
+/* ─────────────────────────────────────────
+   1.  Reset & Typography
+   ───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 10pt;
+  line-height: 1.6;
+  color: #212121;
+}
+
+h1 {
+  font-size: 20pt;
+  color: var(--accent-dark);
+  margin-bottom: 10px;
+  border-bottom: 2.5px solid var(--accent);
+  padding-bottom: 6px;
+}
+h2 { font-size: 14pt; color: var(--accent); margin: 16px 0 8px; }
+h3 { font-size: 11pt; color: #333; margin: 12px 0 4px; }
+p  { margin: 5px 0; }
+ul { margin: 4px 0 4px 22px; list-style: disc; }
+li { margin: 2px 0; }
+
+/* ─────────────────────────────────────────
+   2.  Page layout  (WeasyPrint handles @page)
+   ───────────────────────────────────────── */
+@page {
+  size: A4;
+  margin: 22mm 18mm 28mm 18mm;
+
+  @bottom-center {
+    content: "Powered by GreenValue AI \2014  IVS 2025 Compliant  \B7  Page " counter(page) " of " counter(pages);
+    font-size: 7pt;
+    color: #9e9e9e;
+  }
+}
+
+.page {
+  page-break-after: always;
+  padding: 0;
+}
+.page:last-child {
+  page-break-after: auto;
+}
+
+/* ─────────────────────────────────────────
+   3.  Tables
+   ───────────────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 14px 0;
+  font-size: 9pt;
+}
+th {
+  background: var(--accent);
+  color: #fff;
+  padding: 8px 8px;
+  text-align: left;
+  font-weight: 600;
+}
+td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+tr:nth-child(even) td {
+  background: #f5f5f5;
+}
+
+/* ─────────────────────────────────────────
+   4.  Cover page
+   ───────────────────────────────────────── */
+.cover {
+  text-align: center;
+  padding-top: 50px;
+}
+.cover h1 {
+  font-size: 32pt;
+  border: none;
+  letter-spacing: 2px;
+}
+.cover .subtitle {
+  color: #757575;
+  font-size: 13pt;
+  margin: 6px 0 32px;
+}
+.cover img.property-photo {
+  max-width: 78%;
+  max-height: 270px;
+  margin: 18px auto;
+  display: block;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+}
+.cover .meta {
+  font-size: 10pt;
+  line-height: 2.3;
+  margin-top: 14px;
+}
+.cover .meta .lbl {
+  color: #757575;
+  display: inline-block;
+  min-width: 120px;
+  text-align: right;
+  margin-right: 10px;
+}
+
+/* ─────────────────────────────────────────
+   5.  Charts & images
+   ───────────────────────────────────────── */
+.chart-img {
+  max-width: 100%;
+  margin: 16px auto;
+  display: block;
+}
+.heatmap-img {
+  max-width: 100%;
+  margin: 16px 0;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.1);
+}
+
+/* ─────────────────────────────────────────
+   6.  Energy labels
+   ───────────────────────────────────────── */
+.label-badge {
+  display: inline-block;
+  padding: 5px 16px;
+  border-radius: 5px;
+  color: #fff;
+  font-weight: bold;
+  font-size: 14pt;
+}
+.label-A, .label-A\+ { background: #1B5E20; }
+.label-B              { background: #2E7D32; }
+.label-C              { background: #689F38; }
+.label-D              { background: #FBC02D; color: #333; }
+.label-E              { background: #F57C00; }
+.label-F              { background: #E53935; }
+.label-G              { background: #B71C1C; }
+
+/* ─────────────────────────────────────────
+   7.  Warnings
+   ───────────────────────────────────────── */
+.warn {
+  background: #FFF3E0;
+  border-left: 4px solid #FF9800;
+  padding: 8px 14px;
+  margin: 10px 0;
+  font-size: 9pt;
+  border-radius: 0 4px 4px 0;
+}
+
+/* ─────────────────────────────────────────
+   8.  Upgrade cards (renovation section)
+   ───────────────────────────────────────── */
+.upgrade-card {
+  border: 1px solid #C8E6C9;
+  border-radius: 6px;
+  padding: 16px;
+  margin: 12px 0;
+  background: #f1f8e9;
+  page-break-inside: avoid;
+}
+.upgrade-card h3 {
+  color: #1B5E20;
+  margin-bottom: 8px;
+  font-size: 11pt;
+}
+.metrics-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 8px;
+}
+.metric-box {
+  flex: 1 0 100px;
+}
+.metric-box .num {
+  font-size: 14pt;
+  font-weight: bold;
+  color: var(--accent);
+}
+.metric-box .lbl {
+  font-size: 8pt;
+  color: #757575;
+}
+
+/* ─────────────────────────────────────────
+   9.  Value reconciliation box
+   ───────────────────────────────────────── */
+.value-box {
+  text-align: center;
+  margin: 24px 0;
+  padding: 20px 16px;
+  background: #E8F5E9;
+  border-radius: 8px;
+}
+.value-box .currency {
+  font-size: 28pt;
+  font-weight: bold;
+  color: #1B5E20;
+}
+.value-box .sub {
+  font-size: 10pt;
+  color: #757575;
+}
+
+/* ─────────────────────────────────────────
+   10. Appendix styling
+   ───────────────────────────────────────── */
+.appendix h1 {
+  font-size: 16pt;
+}
+.appendix {
+  font-size: 9pt;
+}
+</style>
+</head>
+<body>
+
+{# ═══════════════════════════ COVER PAGE ═══════════════════════════ #}
+<div class="page cover">
+  <h1>VALUATION REPORT</h1>
+  <div class="subtitle">IVS 2025 Compliant — {{ branding.company_name }}</div>
+
+  {% if cover_photo %}
+    <img class="property-photo" src="{{ cover_photo }}" alt="Property Photo">
+  {% endif %}
+
+  <h2 style="border:none; margin-top:6px;">{{ cover.property_address }}</h2>
+
+  <div class="meta">
+    <span class="lbl">Report №</span> {{ cover.report_number }}<br>
+    <span class="lbl">Report Date</span> {{ cover.report_date }}<br>
+    <span class="lbl">Valuation Date</span> {{ cover.valuation_date }}<br>
+    <span class="lbl">Appraiser</span> {{ cover.appraiser_name }}<br>
+    <span class="lbl">Client</span> {{ cover.client_name or 'N/A' }}<br>
+    <span class="lbl">Intended Use</span> {{ cover.intended_use }}
+  </div>
+</div>
+
+{# ═════════════════════════ REPORT SECTIONS ════════════════════════ #}
+{% for sec in sections %}
+{% if sec.section_id != 'cover' %}
+<div class="page{% if sec.is_appendix %} appendix{% endif %}">
+  <h1>{{ sec.title }}</h1>
+
+  {# ── Section content (basic markdown → HTML) ── #}
+  {% for line in sec.content.split('\n') %}
+    {% set s = line.strip() %}
+    {% if s.startswith('### ') %}
+      <h3>{{ s[4:] }}</h3>
+    {% elif s.startswith('## ') %}
+      <h2>{{ s[3:] }}</h2>
+    {% elif s.startswith('- ') %}
+      <ul><li>{{ s[2:] }}</li></ul>
+    {% elif s.startswith('**') and s.endswith('**') %}
+      <p><strong>{{ s[2:-2] }}</strong></p>
+    {% elif s %}
+      <p>{{ s }}</p>
+    {% endif %}
+  {% endfor %}
+
+  {# ── Data tables ── #}
+  {% for tbl in sec.tables %}
+  <table>
+    <thead>
+      <tr>{% for h in tbl.headers %}<th>{{ h }}</th>{% endfor %}</tr>
+    </thead>
+    <tbody>
+      {% for row in tbl.rows %}
+      <tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endfor %}
+
+  {# ── ENERGY ASSESSMENT: gauge + labels + heatmap ── #}
+  {% if sec.section_id == 'energy_assessment' %}
+    {% if charts.energy_gauge %}
+      <img class="chart-img" src="{{ charts.energy_gauge }}" alt="Energy Label Gauge" style="max-width:220px;">
+    {% endif %}
+
+    {% if energy.energy_label_current %}
+    <p style="margin:12px 0;">
+      Current label:
+      <span class="label-badge label-{{ energy.energy_label_current }}">{{ energy.energy_label_current }}</span>
+      {% if energy.energy_label_projected %}
+        &nbsp;→&nbsp;
+        <span class="label-badge label-{{ energy.energy_label_projected }}">{{ energy.energy_label_projected }}</span>
+        <span style="font-size:9pt;color:#757575;">(projected after upgrades)</span>
+      {% endif %}
+    </p>
+    {% endif %}
+
+    {% if charts.before_after %}
+      <h3 style="margin-top:18px;">Before / After Comparison</h3>
+      <img class="chart-img" src="{{ charts.before_after }}" alt="Before/After Energy Comparison">
+    {% endif %}
+
+    {% if charts.u_value_comparison %}
+      <h3 style="margin-top:18px;">U-Value Comparison</h3>
+      <img class="chart-img" src="{{ charts.u_value_comparison }}" alt="U-Value Comparison">
+    {% endif %}
+
+    {% if heatmap %}
+      <h3>Thermal Heatmap</h3>
+      <img class="heatmap-img" src="{{ heatmap }}" alt="Thermal Heatmap">
+    {% endif %}
+
+    {% if charts.heatmap_overlay %}
+      <h3>Heatmap Overlay</h3>
+      <img class="heatmap-img" src="{{ charts.heatmap_overlay }}" alt="Heatmap Overlay">
+    {% endif %}
+  {% endif %}
+
+  {# ── RENOVATION IMPACT: upgrade cards + charts ── #}
+  {% if sec.section_id == 'renovation_impact' %}
+    {% if renovation.upgrades %}
+      <h2>Recommended Upgrades</h2>
+      {% for u in renovation.upgrades %}
+      <div class="upgrade-card">
+        <h3>{{ u.component }} — {{ u.description }}</h3>
+        <div class="metrics-row">
+          <div class="metric-box">
+            <div class="num">{{ fmt_currency(u.estimated_cost, currency) }}</div>
+            <div class="lbl">Estimated Cost</div>
+          </div>
+          <div class="metric-box">
+            <div class="num">{{ fmt_currency(u.estimated_value_add, currency) }}</div>
+            <div class="lbl">Value Add</div>
+          </div>
+          <div class="metric-box">
+            <div class="num">{{ '%.1f'|format(u.roi_percent) }}%</div>
+            <div class="lbl">ROI</div>
+          </div>
+          <div class="metric-box">
+            <div class="num">{{ '%.1f'|format(u.payback_years) }} yr</div>
+            <div class="lbl">Payback</div>
+          </div>
+          <div class="metric-box">
+            <div class="num">{{ '%.0f'|format(u.energy_savings_kwh) }} kWh</div>
+            <div class="lbl">Energy Saved / yr</div>
+          </div>
+          <div class="metric-box">
+            <div class="num">{{ '%.0f'|format(u.co2_reduction_kg) }} kg</div>
+            <div class="lbl">CO₂ Reduced / yr</div>
+          </div>
+        </div>
+        {% if u.valuation_method %}
+        <p style="font-size:8pt;color:#757575;margin-top:8px;">
+          IVS Method: {{ u.valuation_method }}
+        </p>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      {# Aggregate totals #}
+      <table style="margin-top:16px;">
+        <tr><th>Total Renovation Cost</th><td>{{ fmt_currency(renovation.total_cost, currency) }}</td></tr>
+        <tr><th>Total Value Add</th><td>{{ fmt_currency(renovation.total_value_add, currency) }}</td></tr>
+        <tr><th>Aggregate ROI</th><td>{{ '%.1f'|format(renovation.aggregate_roi) }}%</td></tr>
+        <tr><th>Label Impact</th><td>{{ renovation.before_label }} → {{ renovation.after_label }}</td></tr>
+      </table>
+    {% else %}
+      <p>No upgrade recommendations generated for this property.</p>
+    {% endif %}
+
+    {% if charts.roi_waterfall %}
+      <h3 style="margin-top:18px;">ROI Waterfall</h3>
+      <img class="chart-img" src="{{ charts.roi_waterfall }}" alt="ROI Waterfall Chart">
+    {% endif %}
+    {% if charts.cost_breakdown %}
+      <h3>Cost Breakdown</h3>
+      <img class="chart-img" src="{{ charts.cost_breakdown }}" alt="Cost Breakdown">
+    {% endif %}
+  {% endif %}
+
+  {# ── VALUATION APPROACHES ── #}
+  {% if sec.section_id == 'valuation_approaches' %}
+    {% for ap in valuation_approaches %}
+    {% if ap.applicable %}
+    <div style="border:1px solid #e0e0e0; border-radius:4px; padding:12px; margin:10px 0; page-break-inside:avoid;">
+      <h3>{{ ap.approach_name }}</h3>
+      <p>{{ ap.methodology }}</p>
+      {% if ap.value_estimate %}
+        <p><strong>Estimated Value:</strong> {{ fmt_currency(ap.value_estimate, currency) }}
+           (Weight: {{ '%.0f'|format(ap.weight_in_reconciliation * 100) }}%)</p>
+      {% endif %}
+      {% if ap.data_sources %}
+        <p style="font-size:8pt;color:#757575;">Sources: {{ ap.data_sources | join('; ') }}</p>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    {% if charts.cap_rate_sensitivity %}
+      <h3 style="margin-top:18px;">Cap Rate Sensitivity Analysis</h3>
+      <img class="chart-img" src="{{ charts.cap_rate_sensitivity }}" alt="Cap Rate Sensitivity">
+    {% endif %}
+  {% endif %}
+
+  {# ── RECONCILIATION: final value box ── #}
+  {% if sec.section_id == 'reconciliation' %}
+    {% if reconciliation.reconciled_value %}
+    <div class="value-box">
+      <div class="sub">Reconciled Market Value (IVS 104)</div>
+      <div class="currency">{{ fmt_currency(reconciliation.reconciled_value, currency) }}</div>
+      <div class="sub">
+        Confidence: {{ reconciliation.confidence_level }}
+        {% if reconciliation.green_premium_amount %}
+          &nbsp;·&nbsp;Green Premium: {{ fmt_currency(reconciliation.green_premium_amount, currency) }}
+        {% endif %}
+      </div>
+    </div>
+
+    {% if reconciliation.reconciliation_narrative %}
+    <h3>Reconciliation Narrative</h3>
+    {% for line in reconciliation.reconciliation_narrative.split('\n') %}
+      <p>{{ line }}</p>
+    {% endfor %}
+    {% endif %}
+    {% endif %}
+  {% endif %}
+
+  {# ── APPENDIX: Glossary ── #}
+  {% if sec.section_id == 'appendix_glossary' and glossary_terms %}
+    <table>
+      <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+      <tbody>
+        {% for term in glossary_terms %}
+        <tr><td><strong>{{ term.term }}</strong></td><td>{{ term.definition }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  {# ── APPENDIX: Data Sources ── #}
+  {% if sec.section_id == 'appendix_sources' and data_sources %}
+    <ul>
+      {% for src in data_sources %}
+      <li>{{ src.title }} — {{ src.reference }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+</div>
+{% endif %}
+{% endfor %}
+
+{# ═════════════════════ IVS COMPLIANCE WARNINGS ═══════════════════ #}
+{% if ivs_warnings %}
+<div class="page">
+  <h1>IVS Compliance Notes</h1>
+  {% for w in ivs_warnings %}
+  <div class="warn">⚠ {{ w }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+</body>
+</html>

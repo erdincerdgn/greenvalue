@@ -352,12 +352,232 @@ WS_URL=ws://<YOUR_IP>:4000
 
 ## 10. DEVELOPMENT STATUS
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Backend API | ✅ Complete | Auth, Property, Audit, WebSocket working |
-| Mobile App | ✅ Integrated | API connected, all tabs functional |
-| AI Engine | 🔶 Scaffolded | Main.py ready, needs YOLO training |
-| Consumer Web | 🔶 Scaffolded | Next.js structure ready |
-| Partner Portal | 🔶 Scaffolded | Next.js structure ready |
-| Admin Dashboard | ❌ Empty | Not started |
-| Docker Compose | ✅ Complete | All services configured |
+| Component | Status | Completion | Notes |
+|-----------|--------|------------|-------|
+| **Backend API** | ✅ Production-ready | **~85%** | 17 modules imported, full CRUD, JWT auth, RBAC, WebSocket, BullMQ, gRPC proxy, audit logging |
+| **Mobile App** | 🔶 Core working | **~70%** | Auth, scan→upload→process→result flow wired end-to-end. 5 profile sub-screens are mock data. |
+| **AI Engine** | 🔶 Functional (with caveats) | **~75%** | 27 real endpoints. YOLO inference runs but uses COCO pretrained (not custom building classes). Full RAG pipeline operational. |
+| **Docker Compose** | ✅ Complete | **~95%** | 14 services, GPU support, health checks, profiles for ml/monitoring/gateway |
+| **Consumer Web** | 🔶 Scaffolded | **~5%** | Next.js structure only |
+| **Partner Portal** | 🔶 Scaffolded | **~5%** | Next.js structure only |
+| **Admin Dashboard** | ❌ Empty | **0%** | Not started |
+
+---
+
+## 11. DEEP AUDIT — CURRENT STATE (March 2026)
+
+### A. Backend (NestJS) — Detailed Status
+
+**What Works End-to-End:**
+- User registration/login → JWT → all protected routes
+- Property CRUD with pagination, filtering, geolocation
+- Pre-signed URL upload flow (mobile → backend → RustFS)
+- AI analysis submission via HTTP or gRPC (with automatic failover)
+- Analysis status polling
+- Analysis result persistence to PostgreSQL
+- Report generation via BullMQ queue + worker
+- Report CRUD with presigned download URLs
+- Audit logging (15 action types, event-driven)
+- WebSocket (analysis:progress, analysis:completed, analysis:failed, report:ready, notifications)
+- Kubernetes-ready health checks (liveness/readiness)
+- Prometheus metrics (10+ custom counters/histograms)
+
+**Known Issues:**
+| # | Issue | Severity | File |
+|---|-------|----------|------|
+| 1 | `CommonModule` NOT imported in `AppModule` — global exception filters/interceptors are dead code | Medium | `app.module.ts` |
+| 2 | `report.service.ts` uses `(this.prisma.report as any)` casts — Prisma client needs regeneration | Medium | `report.service.ts` |
+| 3 | Metrics middleware imports Express types but app runs on Fastify | Low | `metrics.middleware.ts` |
+| 4 | Password reset generates token but never sends email | High | `auth.service.ts` |
+| 5 | 3 of 5 BullMQ queues have no workers (notifications, email, cleanup) | Medium | `queue.service.ts` |
+| 6 | `ScheduleModule` imported but no `@Cron()` decorators exist | Low | `app.module.ts` |
+| 7 | OAuth strategies use `'your-client-id'` placeholders | Low | `google.strategy.ts` |
+| 8 | Duplicate `RolesGuard` implementations (auth vs common) | Low | `roles.guard.ts` |
+| 9 | `rememberMe` field accepted in DTO but ignored in logic | Low | `auth.service.ts` |
+| 10 | `RefreshTokenDto`/`VerifyEmailDto` defined but unused — no refresh or email verification flow | Medium | `auth/dto/` |
+
+**Dead Code:**
+- `AppController` / `AppService` — empty shells
+- `CommonModule` — never imported
+- `common/guards/rate-limit.guard.ts` — unused (ThrottlerGuard handles it)
+- `common/pagination/` — unused (inline pagination everywhere)
+- `common/interfaces/base-response.ts` — never imported
+- `common/enums/role.enum.ts` — Prisma Role used instead
+- `auth/guards/optional-jwt-auth.guard.ts` — exported but never used
+- `SubscriptionGuard` — exported but never used
+
+### B. Mobile App (React Native/Expo) — Detailed Status
+
+**What Works End-to-End:**
+- Auth flow: login → JWT stored in SecureStore → auto-redirect
+- Registration with client-side validation
+- Dashboard: real properties from API, stats, pull-to-refresh
+- Map: OSM tiles, real properties, geocoding, filter chips, clustering
+- Scan: camera capture / gallery → photo grid → RustFS upload (pre-signed) → AI submission
+- Processing: dual-channel progress (WebSocket + HTTP polling), auto-navigate on completion
+- Valuation Result: energy donut, U-values, component details, renovation suggestions, report generation, persist to DB
+- Property Detail: real data, analysis history, report list
+- Reports Tab: real data from API, summary stats, delete
+- Offline: SQLite schema (4 tables), sync service, local property cache
+
+**Known Issues:**
+| # | Issue | Severity |
+|---|-------|----------|
+| 1 | Feature Validation screen uses hardcoded mock data, disconnected from AI results | High |
+| 2 | Feature Validation screen is NEVER navigated to (scan→processing skips it) | Medium |
+| 3 | Notifications screen is fully mock data, no WS/API integration | High |
+| 4 | 5 profile sub-screens (personal-info, investments, subscription, security, environmental) have mock data | Medium |
+| 5 | Social login buttons (Google/Apple) are UI-only — no OAuth | Medium |
+| 6 | "Forgot Password" link does nothing | Medium |
+| 7 | No PDF viewer or download trigger for reports | High |
+| 8 | Portfolio chart on Dashboard is an empty placeholder | Low |
+| 9 | "Premium Member"/"Gold Badge"/"Avg Energy Score: A" hardcoded on Profile | Low |
+| 10 | WebSocket only connected reactively (processing screen); not globally | Medium |
+| 11 | TanStack Query installed but never used (all data via Zustand + direct API) | Low |
+| 12 | NativeWind/Tailwind installed but barely used (inline StyleSheet everywhere) | Low |
+| 13 | `expo-camera` installed but only used for permissions (actual capture via ImagePicker) | Low |
+| 14 | No refresh token rotation (401 just logs out) | Medium |
+| 15 | `properties.tsx.bak` dead file in tabs | Low |
+
+### C. AI Engine (Python/FastAPI) — Detailed Status
+
+**What Works:**
+- All 27 endpoints have real implementations (none are stubs)
+- YOLO11m-seg loads and runs inference with GPU support
+- Full analysis pipeline: MinIO download → YOLO → Physics → Heatmap → MinIO upload
+- U-Value calculation with 19 materials, EN ISO 6946 formulas, energy labeling (A–G)
+- Heatmap generation with matplotlib (color-coded by condition)
+- gRPC server with 8 RPCs (dynamic proto compilation)
+- Full RAG pipeline with 18 modules: embeddings (BGE-small + BM25), corrective RAG, semantic routing, knowledge graph, user memory, query expansion, semantic caching, reranking (FlashRank + cross-encoder)
+- Two RAG implementations: standard `GreenValueRAG` and `Ultimate100RAGPipeline` (850 lines)
+- OCR with 4 strategies (hi_res, tesseract, hybrid, fast)
+- IVS-2025 report generation (JSON + PDF)
+- BullMQ-compatible Redis consumer
+
+**Critical Issues:**
+| # | Issue | Severity |
+|---|-------|----------|
+| 1 | **YOLO uses pretrained COCO weights** — detects "person/car" not "window/facade". Custom training needed. | **CRITICAL** |
+| 2 | All job results stored in-memory (`_state` dict) — **lost on restart** | **CRITICAL** |
+| 3 | No authentication on any endpoint | High |
+| 4 | `pixel_to_m2_ratio = 0.001` is a naive fixed constant | High |
+| 5 | Dead code: `similarity_search()` body after `return` in retrieval.py | Medium |
+| 6 | Learning engine data ephemeral (in-memory only) | Medium |
+| 7 | Prometheus metrics hand-rolled (not using `prometheus_client` lib) | Low |
+| 8 | MLflow in requirements but never imported/used | Low |
+| 9 | No rate limiting on endpoints | Medium |
+| 10 | Vision-RAG calls itself via HTTP (http://localhost:8000) | Low |
+
+### D. Infrastructure — Status
+
+| Service | Status | Running? | Notes |
+|---------|--------|----------|-------|
+| PostgreSQL + PostGIS | ✅ | Yes | Init script ready, health check working |
+| Redis Stack | ✅ | Yes | BullMQ + caching + RedisInsight UI |
+| RustFS | ✅ | Yes | 3 buckets auto-created via mc init container |
+| Qdrant | ✅ | Yes | RAG collection working |
+| NestJS Backend | ✅ | Yes | Docker + local dev both working |
+| AI Engine | ✅ | Yes | CUDA 12.4, multi-stage build |
+| Ollama | ✅ | Yes | LLM serving for RAG, needs `ollama pull llama3.2:3b` |
+| Neo4j | ✅ | Yes | Knowledge graph, APOC + GDS plugins |
+| Unstructured API | ✅ | Yes | PDF table extraction for RAG ingestion |
+| MLflow | ✅ (profile: ml) | On-demand | Not integrated with code |
+| Nginx | ✅ (profile: gateway) | On-demand | SSL config ready |
+| Prometheus | ✅ (profile: monitoring) | On-demand | Custom alerting rules |
+| Grafana | ✅ (profile: monitoring) | On-demand | Dashboard provisioning |
+| cAdvisor | ✅ (profile: monitoring) | On-demand | Container metrics |
+| Node Exporter | ✅ (profile: monitoring) | On-demand | System metrics |
+
+**Total: 15 services, 15 named volumes, 1 bridge network.**
+
+---
+
+## 12. ROADMAP
+
+### Phase 0: Stabilize (NOW — Week 1-2)
+> **Goal:** Fix all critical bugs preventing the demo-ready MVP.
+
+| # | Task | Component | Priority | Effort |
+|---|------|-----------|----------|--------|
+| 0.1 | Run `npx prisma migrate dev` + `npx prisma generate` to fix `as any` casts in report service | Backend | **P0** | 15 min |
+| 0.2 | Import `CommonModule` in `AppModule` (activates global exception filters + logging interceptor) | Backend | **P0** | 5 min |
+| 0.3 | Fix Metrics middleware Express→Fastify types (`FastifyRequest`/`FastifyReply`) | Backend | **P1** | 15 min |
+| 0.4 | Persist analysis results to Redis/DB instead of in-memory `_state` dict | AI Engine | **P0** | 2 hr |
+| 0.5 | Connect WebSocket globally in mobile app root (not just processing screen) | Mobile | **P0** | 30 min |
+| 0.6 | Wire Feature Validation screen to real AI detection data OR remove from flow | Mobile | **P1** | 2 hr |
+| 0.7 | Delete `properties.tsx.bak` dead file | Mobile | **P2** | 1 min |
+| 0.8 | Add AI engine authentication (forward JWT or use shared API key from backend) | AI Engine | **P1** | 2 hr |
+
+### Phase 1: Core Experience (Week 3-6)
+> **Goal:** End-to-end working product for demo day.
+
+| # | Task | Component | Priority | Effort |
+|---|------|-----------|----------|--------|
+| 1.1 | **Train custom YOLO11 on building component dataset** (window, door, facade, roof, balcony, insulation, solar_panel) | AI Engine | **P0** | 2-3 weeks |
+| 1.2 | Create/annotate building component dataset (Roboflow/CVAT) — min 500 images | AI Engine | **P0** | 1-2 weeks |
+| 1.3 | Integrate MLflow for YOLO training experiment tracking | AI Engine | **P1** | 1 day |
+| 1.4 | Implement email service (nodemailer + BullMQ email worker) — password reset, report ready notifications | Backend | **P1** | 2 days |
+| 1.5 | Add report PDF viewer in mobile (expo-linking or WebView) | Mobile | **P1** | 1 day |
+| 1.6 | Wire Notifications screen to WebSocket events + notification API | Mobile | **P1** | 2 days |
+| 1.7 | Wire profile sub-screens to real API data (personal-info → `authApi.updateProfile()`, security → `authApi.changePassword()`) | Mobile | **P1** | 2 days |
+| 1.8 | Implement camera calibration or reference-object area estimation (replace fixed `pixel_to_m2_ratio`) | AI Engine | **P1** | 3 days |
+| 1.9 | Add BullMQ workers for notification + cleanup queues | Backend | **P2** | 1 day |
+| 1.10 | Implement refresh token rotation (backend + mobile 401 interceptor) | Backend + Mobile | **P2** | 2 days |
+
+### Phase 2: Intelligence & Polish (Week 7-10)
+> **Goal:** Production-quality AI and polished UX.
+
+| # | Task | Component | Priority | Effort |
+|---|------|-----------|----------|--------|
+| 2.1 | Implement real "Homes Like This" visual similarity (image embeddings → Qdrant, not just text) | AI Engine | **P1** | 3 days |
+| 2.2 | Add Portfolio Value chart on Dashboard (D3/Victory Native or SVG) | Mobile | **P1** | 2 days |
+| 2.3 | Implement push notifications (expo-notifications: push tokens → backend → FCM/APNs) | Backend + Mobile | **P1** | 3 days |
+| 2.4 | Add Forgot Password flow end-to-end (email sending + reset token + mobile deep link) | Backend + Mobile | **P2** | 2 days |
+| 2.5 | Replace hand-rolled Prometheus metrics with `prometheus_client` library | AI Engine | **P2** | 2 hr |
+| 2.6 | Persist RAG learning engine data (SQLite/Redis instead of in-memory dicts) | AI Engine | **P2** | 1 day |
+| 2.7 | Migrate from inline styles to NativeWind/Tailwind consistently across all screens | Mobile | **P3** | 3 days |
+| 2.8 | Actually use TanStack Query for API calls (replace direct Zustand fetches) | Mobile | **P3** | 3 days |
+| 2.9 | Add offline upload retry queue (SQLite-backed) with visual status | Mobile | **P2** | 2 days |
+| 2.10 | Clean up dead code (CommonModule, unused guards, duplicate role enums, empty AppController) | Backend | **P3** | 2 hr |
+
+### Phase 3: Multi-Platform (Week 11-16)
+> **Goal:** Web frontends for different user types.
+
+| # | Task | Component | Priority | Effort |
+|---|------|-----------|----------|--------|
+| 3.1 | Build Consumer Web — property dashboard, upload, results, reports (Next.js + Mantine) | Consumer Web | **P1** | 3 weeks |
+| 3.2 | Build Partner Portal — contractor view, multi-property analysis, batch reports | Partner Web | **P2** | 3 weeks |
+| 3.3 | Build Admin Dashboard — user management, system metrics, audit logs, AI model management | Admin Web | **P2** | 2 weeks |
+| 3.4 | Implement OAuth (Google + GitHub) end-to-end with real credentials | Backend + All FE | **P2** | 2 days |
+| 3.5 | Add subscription/payment system (Stripe or self-hosted) | Backend + Mobile | **P3** | 2 weeks |
+
+### Phase 4: Scale & Deploy (Week 17-20)
+> **Goal:** Production deployment with monitoring.
+
+| # | Task | Component | Priority | Effort |
+|---|------|-----------|----------|--------|
+| 4.1 | Deploy to VPS/bare-metal with Docker Compose + monitoring profile | Infrastructure | **P1** | 2 days |
+| 4.2 | Set up Grafana dashboards for all services | Infrastructure | **P1** | 1 day |
+| 4.3 | Configure Alertmanager for critical alerts | Infrastructure | **P1** | 1 day |
+| 4.4 | Set up CI/CD pipeline (GitHub Actions → Docker build → deploy) | Infrastructure | **P1** | 2 days |
+| 4.5 | Implement database backup strategy (pg_dump cron → RustFS) | Infrastructure | **P2** | 1 day |
+| 4.6 | Load testing with k6 or locust (identify bottlenecks) | Infrastructure | **P2** | 2 days |
+| 4.7 | K8s manifests for scaling (if single-machine isn't sufficient) | Infrastructure | **P3** | 1 week |
+| 4.8 | SSL certificates with Let's Encrypt auto-renewal | Infrastructure | **P2** | 1 day |
+
+---
+
+## 13. ARCHITECTURE DECISIONS LOG
+
+| Date | Decision | Rationale |
+|------|----------|-----------|
+| 2025-10 | RustFS over MinIO | 2.3x faster, Apache 2.0 license, Rust-based |
+| 2025-10 | Fastify over Express (NestJS) | Better performance, native TypeScript |
+| 2025-11 | Expo Router over React Navigation | File-based routing, better DX |
+| 2025-11 | Zustand over Redux | Lighter, less boilerplate |
+| 2025-12 | BullMQ over RabbitMQ | Redis-backed simplicity, zero-cost |
+| 2025-12 | Qdrant over Pinecone | Self-hosted, no API costs |
+| 2026-01 | Ollama over OpenAI | Zero-cost, local LLM, data privacy |
+| 2026-01 | Neo4j for property graph | Native graph queries, APOC plugins |
+| 2026-02 | YOLO11 over YOLOv8 | Better segmentation, newer architecture |
+| 2026-03 | FastEmbed over OpenAI embeddings | Zero-cost, local inference, low latency |

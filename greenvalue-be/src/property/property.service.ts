@@ -53,7 +53,15 @@ export class PropertyService {
         const [properties, total] = await Promise.all([
             this.prisma.property.findMany({
                 where,
-                include: { _count: { select: { analyses: true } } },
+                include: {
+                    _count: { select: { analyses: true } },
+                    analyses: {
+                        where: { status: 'COMPLETED' },
+                        orderBy: { createdAt: 'desc' },
+                        take: 1,
+                        select: { energyLabel: true, overallUValue: true, createdAt: true },
+                    },
+                },
                 skip,
                 take: limit,
                 orderBy: { [sortBy]: sortDirection },
@@ -89,6 +97,12 @@ export class PropertyService {
                 include: {
                     owner: { select: { id: true, fullName: true, email: true } },
                     _count: { select: { analyses: true } },
+                    analyses: {
+                        where: { status: 'COMPLETED' },
+                        orderBy: { createdAt: 'desc' },
+                        take: 1,
+                        select: { energyLabel: true, overallUValue: true, createdAt: true },
+                    },
                 },
                 skip,
                 take: limit,
@@ -119,10 +133,23 @@ export class PropertyService {
                         status: true,
                         energyLabel: true,
                         overallUValue: true,
+                        imageKey: true,
+                        heatmapKey: true,
                         createdAt: true,
                     },
                 },
-                _count: { select: { analyses: true } },
+                reports: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 5,
+                    select: {
+                        id: true,
+                        title: true,
+                        format: true,
+                        fileKey: true,
+                        createdAt: true,
+                    },
+                },
+                _count: { select: { analyses: true, reports: true } },
             },
         });
 
@@ -168,16 +195,22 @@ export class PropertyService {
     // ─── Helpers ─────────────────────────────────────────
 
     private formatResponse(property: any) {
+        const latestAnalysis = property.analyses?.[0] ?? null;
         return {
             id: property.id,
             title: property.title,
             address: property.address,
             city: property.city,
             district: property.district,
+            postalCode: property.postalCode ?? null,
+            latitude: property.latitude ?? null,
+            longitude: property.longitude ?? null,
             buildingYear: property.buildingYear,
             buildingType: property.buildingType,
             floorArea: property.floorArea ? Number(property.floorArea) : null,
             thumbnailKey: property.thumbnailKey,
+            energyLabel: latestAnalysis?.energyLabel ?? null,
+            lastAnalysisAt: latestAnalysis?.createdAt ?? null,
             ownerId: property.ownerId,
             owner: property.owner,
             createdAt: property.createdAt,

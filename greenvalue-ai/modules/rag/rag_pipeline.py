@@ -18,18 +18,29 @@ from langchain_ollama import OllamaLLM
 
 # Import all components
 from .ingestion import EnhancedDocumentIngestionPipeline
-from .router import EnhancedSemanticRouter
+from .router import EnhancedSemanticRouter, PropTechDomain
 from .vision_rag_integration import VisionRAGIntegrator, MultiModalRAGPipeline
 from .semantic_caching import SemanticCache, EmbeddingCache
 from .query_expansion import PropTechQueryExpander, ExpansionStrategy
-# Note: RealTimeLearningEngine and AdvancedAnalyticsDashboard not yet implemented
+from .learning import RealTimeLearningEngine
+from .analytics import AdvancedAnalyticsDashboard
 from .config import RAGConfig
 from .store import GreenValueDocumentStore
 from .memory import SQLiteMemory
 from .retrieval import RetrievalEngine
 from .reranker import CrossEncoderReranker
 from .corrective import CorrectiveRAG
-from .graph import KnowledgeGraph, PropertyGraph
+from .graph import KnowledgeGraph, PropertyGraph  # in-memory fallback
+
+# Neo4j-backed graph (preferred when available)
+_neo4j_available = False
+try:
+    from modules.graph import PropertyKnowledgeGraph, Neo4jClient, Neo4jConfig
+    _neo4j_available = True
+except ImportError:
+    PropertyKnowledgeGraph = None
+    Neo4jClient = None
+    Neo4jConfig = None
 
 logger = logging.getLogger("greenvalue-rag")
 
@@ -97,6 +108,12 @@ class Ultimate100RAGPipeline:
         self._vision_integrator = None
         self._memory = None
         self._llm = None
+        
+        # Graph components
+        self._neo4j_client = None
+        self._knowledge_graph = None       # Neo4j-backed graph
+        self._fallback_graph = None        # In-memory KnowledgeGraph
+        self._fallback_prop_graph = None   # In-memory PropertyGraph
         
         # Optimization components
         self._semantic_cache = None
@@ -175,6 +192,30 @@ class Ultimate100RAGPipeline:
             # Learning and analytics
             self._learning_engine = RealTimeLearningEngine()
             self._analytics_dashboard = AdvancedAnalyticsDashboard(self._learning_engine)
+            
+            # ── Neo4j Knowledge Graph (preferred) ────────────────
+            if _neo4j_available and Neo4jClient is not None:
+                try:
+                    neo4j_cfg = Neo4jConfig(
+                        uri=getattr(self.config, "neo4j_uri", "bolt://localhost:7687"),
+                        user=getattr(self.config, "neo4j_user", "neo4j"),
+                        password=getattr(self.config, "neo4j_password", "greenvalue_secret"),
+                        database=getattr(self.config, "neo4j_database", "neo4j"),
+                    )
+                    self._knowledge_graph = PropertyKnowledgeGraph(neo4j_cfg)
+                    if self._knowledge_graph.initialize(seed=False):
+                        logger.info("✅ Neo4j Knowledge Graph connected (pipeline)")
+                    else:
+                        logger.warning("⚠️ Neo4j Knowledge Graph failed to initialize")
+                        self._knowledge_graph = None
+                except Exception as e:
+                    logger.warning(f"⚠️ Neo4j not available, using in-memory graph: {e}")
+                    self._neo4j_client = None
+                    self._knowledge_graph = None
+            
+            # In-memory graph as fallback
+            self._fallback_graph = KnowledgeGraph()
+            self._fallback_prop_graph = PropertyGraph(self._llm)
             
             self._initialized = True
             logger.info("✅ Ultimate 100/100 RAG Pipeline initialized")
@@ -312,6 +353,36 @@ class Ultimate100RAGPipeline:
         user_context = self._memory.get_personalization_context(user_id)
         domain_context = self._semantic_router.get_domain_context(domain)
         learning_context = self._build_learning_context(adaptive_params)
+        
+        # Step 8b: Graph context from Neo4j or in-memory fallback
+        # Use ORIGINAL question (shorter, keyword-rich) for graph matching
+        graph_context = ""
+        logger.info(f"  → Step 8b: kg={self._knowledge_graph is not None}, fb={self._fallback_graph is not None}")
+        try:
+            if self._knowledge_graph is not None:
+                # Use Neo4j-backed PropertyKnowledgeGraph
+                graph_context = self._knowledge_graph.get_graph_context(question)
+                if not graph_context and expanded_query != question:
+                    graph_context = self._knowledge_graph.get_graph_context(expanded_query)
+                if graph_context:
+                    logger.info(f"  → Neo4j graph context enriched ({len(graph_context)} chars)")
+                else:
+                    logger.info("  → Neo4j graph: no matching concepts found")
+            elif self._fallback_graph is not None:
+                # Fallback to in-memory KnowledgeGraph
+                graph_context = self._fallback_graph.get_graph_context(question)
+                if graph_context:
+                    logger.info("  → In-memory graph context enriched")
+                else:
+                    logger.info("  → In-memory graph: no matching concepts")
+            else:
+                logger.info("  → No graph backend available")
+        except Exception as e:
+            logger.warning(f"Graph context unavailable: {e}", exc_info=True)
+        
+        # Append graph context to the main context
+        if graph_context:
+            context = f"{context}\n\n{graph_context}"
         
         # Step 9: Generate ultimate PropTech-optimized response
         response = self._generate_ultimate_response(
@@ -607,6 +678,14 @@ class Ultimate100RAGPipeline:
         else:
             self.performance_metrics["system_health"] = "fair"
     
+    def _check_ocr_engine_available(self) -> bool:
+        """Check if the OCR Engine module is available."""
+        try:
+            from modules.ocr import OCREngine
+            return True
+        except ImportError:
+            return False
+    
     def get_ultimate_status(self) -> Dict:
         """Get ultimate system status with all metrics."""
         if not self._initialized:
@@ -631,7 +710,9 @@ class Ultimate100RAGPipeline:
                 "real_time_learning": True,
                 "advanced_analytics": True,
                 "enhanced_retrieval": True,
-                "user_personalization": True
+                "user_personalization": True,
+                "neo4j_knowledge_graph": self._knowledge_graph is not None,
+                "ocr_engine": self._check_ocr_engine_available(),
             },
             "performance_metrics": self.performance_metrics,
             "cache_performance": cache_stats,
@@ -657,6 +738,34 @@ class Ultimate100RAGPipeline:
             feedback_score = 1.0 if helpful else 0.0
             # Note: Would need query text to update cache feedback
     
+    def retrieve_for_books(
+        self,
+        query: str,
+        book_ids: List[str],
+        top_k: int = 8,
+    ) -> List[Document]:
+        """
+        Retrieve documents filtered to specific books.
+
+        Primary entry point for chain-of-thought multi-book reasoning.
+        Delegates to RetrievalEngine.retrieve_for_books().
+
+        Args:
+            query: Natural-language question
+            book_ids: One or more book_id strings (e.g. ["book_01_ivs"])
+            top_k: Maximum documents to return
+
+        Returns:
+            Reranked, parent-expanded documents from the specified books.
+        """
+        if not self._initialized:
+            self.initialize()
+        return self._enhanced_retrieval.retrieve_for_books(
+            query=query,
+            book_ids=book_ids,
+            top_k=top_k,
+        )
+
     def get_ultimate_analytics(self, user_id: str = None) -> Dict:
         """Get ultimate system analytics and insights."""
         analytics = {

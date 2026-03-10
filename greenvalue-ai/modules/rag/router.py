@@ -26,6 +26,128 @@ class PropTechDomain(Enum):
     GENERAL = "general"
 
 
+# ─── RAG Knowledge Library: 8-Book Expert Mapping ────────────
+
+BOOK_LIBRARY = {
+    "IVS-Jan-2025": {
+        "book_id": "book_01_ivs",
+        "title": "International Valuation Standards (IVS) January 2025",
+        "filename_pattern": "ivs",
+        "domains": [PropTechDomain.VALUATION, PropTechDomain.LEGAL],
+        "authority": 1.0,         # Highest — official standard
+        "expertise": "Official appraisal standard. Defines Market Value (IVS 104), "
+                     "valuation approaches, scope of work, assumptions & limiting conditions.",
+        "chain_role": "appraisal_expert",
+        "chain_order": 4,         # Last in chain — provides legal basis
+    },
+    "Appraisal-of-Real-Estate-15th": {
+        "book_id": "book_02_appraisal",
+        "title": "The Appraisal of Real Estate, 15th Edition",
+        "filename_pattern": "appraisal",
+        "domains": [PropTechDomain.VALUATION],
+        "authority": 0.95,
+        "expertise": "Three fundamental U.S. valuation approaches: Cost, Sales Comparison, "
+                     "Income. Comparable adjustment grids, depreciation, highest & best use.",
+        "chain_role": "appraisal_expert",
+        "chain_order": 4,
+    },
+    "Sustainable-Home-Refurbishment": {
+        "book_id": "book_03_thermal",
+        "title": "Sustainable Home Refurbishment",
+        "filename_pattern": "sustainable.*home|refurbishment",
+        "domains": [PropTechDomain.ENERGY],
+        "authority": 0.90,
+        "expertise": "Thermal physics, U-Value reduction strategies, energy labels (A–G), "
+                     "heat loss calculations, building fabric performance.",
+        "chain_role": "physics_expert",
+        "chain_order": 1,         # First in chain — diagnoses the problem
+    },
+    "Green-Building-Illustrated": {
+        "book_id": "book_04_architecture",
+        "title": "Green Building Illustrated",
+        "filename_pattern": "green.*building.*illustrated",
+        "domains": [PropTechDomain.RETROFIT, PropTechDomain.SUSTAINABILITY],
+        "authority": 0.85,
+        "expertise": "Architectural integration of green technologies. Solar panel placement, "
+                     "passive design, daylighting, structural feasibility.",
+        "chain_role": "design_expert",
+        "chain_order": 2,
+    },
+    "Sustainable-Construction": {
+        "book_id": "book_05_materials",
+        "title": "Sustainable Construction",
+        "filename_pattern": "sustainable.*construction",
+        "domains": [PropTechDomain.SUSTAINABILITY],
+        "authority": 0.85,
+        "expertise": "Materials science, life cycle analysis (LCA), carbon footprint, "
+                     "embodied energy. Rock wool vs EPS vs aerogel comparisons.",
+        "chain_role": "materials_expert",
+        "chain_order": 2,
+    },
+    "Book-on-Flipping-Houses": {
+        "book_id": "book_06_costs",
+        "title": "The Book on Flipping Houses (J. Scott)",
+        "filename_pattern": "flipping|j.*scott",
+        "domains": [PropTechDomain.FINANCE, PropTechDomain.RETROFIT],
+        "authority": 0.80,
+        "expertise": "Construction/renovation cost estimation. Cost tables by component, "
+                     "contractor budgeting, $/sqft benchmarks, rehab scope.",
+        "chain_role": "cost_expert",
+        "chain_order": 2,         # Second in chain — estimates cost
+    },
+    "What-Every-RE-Investor": {
+        "book_id": "book_07_finance",
+        "title": "What Every Real Estate Investor Needs to Know About Cash Flow",
+        "filename_pattern": "investor|cash.*flow",
+        "domains": [PropTechDomain.FINANCE],
+        "authority": 0.85,
+        "expertise": "Financial modeling: Cap Rate, NOI, DCF, IRR, NPV, Cash-on-Cash Return. "
+                     "Converts energy savings into property value via income approach.",
+        "chain_role": "finance_expert",
+        "chain_order": 3,         # Third in chain — calculates ROI
+    },
+    "REALES": {
+        "book_id": "book_08_glossary",
+        "title": "REALES — Real Estate Fundamentals",
+        "filename_pattern": "reales",
+        "domains": [PropTechDomain.GENERAL],
+        "authority": 0.70,
+        "expertise": "General real estate reference. Glossary (Easement, Zoning, Liens), "
+                     "basic concepts for consumer-facing explanations.",
+        "chain_role": "reference",
+        "chain_order": 99,        # Used on-demand, not in main chain
+    },
+}
+
+
+def get_books_for_domain(domain: PropTechDomain) -> list:
+    """Return book configs matching a domain, sorted by authority (highest first)."""
+    matches = [
+        book for book in BOOK_LIBRARY.values()
+        if domain in book["domains"]
+    ]
+    return sorted(matches, key=lambda b: b["authority"], reverse=True)
+
+
+def get_chain_of_thought_books() -> list:
+    """Return the 4-step chain-of-thought book sequence."""
+    chain = [
+        book for book in BOOK_LIBRARY.values()
+        if book["chain_order"] < 99
+    ]
+    return sorted(chain, key=lambda b: b["chain_order"])
+
+
+def identify_book_from_filename(filename: str) -> dict | None:
+    """Match a PDF filename to its book config using filename patterns."""
+    import re as _re
+    fn_lower = filename.lower()
+    for book in BOOK_LIBRARY.values():
+        if _re.search(book["filename_pattern"], fn_lower):
+            return book
+    return None
+
+
 class QueryComplexity(Enum):
     """Query complexity levels for adaptive processing."""
     SIMPLE = "simple"
@@ -82,9 +204,9 @@ Respond with ONLY: simple, moderate, or complex
             return True
         
         try:
-            # Use fast llama3.2:1b for routing
+            # Use fast llama3.2:3b for routing
             self.llm = OllamaLLM(
-                model="llama3.2:1b",
+                model="llama3.2:3b",
                 base_url=self.ollama_host,
                 temperature=0.1  # Low temperature for consistent classification
             )
@@ -93,7 +215,7 @@ Respond with ONLY: simple, moderate, or complex
             test_response = self.llm.invoke("test")
             
             self._initialized = True
-            logger.info("✅ LLM Domain Router initialized with llama3.2:1b")
+            logger.info("✅ LLM Domain Router initialized with llama3.2:3b")
             return True
             
         except Exception as e:
@@ -210,56 +332,70 @@ class EnhancedSemanticRouter:
     def __init__(self, ollama_host: str = "http://ollama:11434"):
         self.domain_router = LLMDomainRouter(ollama_host)
         
-        # Domain-specific retrieval strategies
+        # Domain-specific retrieval strategies (book-aware)
         self.domain_strategies = {
             PropTechDomain.VALUATION: {
                 "top_k": 8,
                 "use_rerank": True,
                 "use_parent": True,
                 "category_filter": "valuation",
-                "priority_metadata": ["ivs", "appraisal", "market"]
+                "priority_metadata": ["ivs", "appraisal", "market"],
+                "preferred_books": ["book_01_ivs", "book_02_appraisal"],
+                "authority_boost": 1.3,  # Boost IVS/Appraisal chunks
             },
             PropTechDomain.ENERGY: {
                 "top_k": 6,
                 "use_rerank": True,
                 "use_parent": False,  # Energy data often in tables
                 "category_filter": "energy",
-                "priority_metadata": ["u_values", "energy_consumption", "thermal"]
+                "priority_metadata": ["u_values", "energy_consumption", "thermal"],
+                "preferred_books": ["book_03_thermal"],
+                "authority_boost": 1.2,
             },
             PropTechDomain.FINANCE: {
                 "top_k": 10,
                 "use_rerank": True,
                 "use_parent": True,
                 "category_filter": "finance",
-                "priority_metadata": ["roi_indicators", "currencies", "contains_roi_analysis"]
+                "priority_metadata": ["roi_indicators", "currencies", "contains_roi_analysis"],
+                "preferred_books": ["book_06_costs", "book_07_finance"],
+                "authority_boost": 1.2,
             },
             PropTechDomain.RETROFIT: {
                 "top_k": 7,
                 "use_rerank": True,
                 "use_parent": True,
                 "category_filter": "retrofit",
-                "priority_metadata": ["renovation", "construction", "improvement"]
+                "priority_metadata": ["renovation", "construction", "improvement"],
+                "preferred_books": ["book_04_architecture", "book_06_costs"],
+                "authority_boost": 1.1,
             },
             PropTechDomain.SUSTAINABILITY: {
                 "top_k": 6,
                 "use_rerank": True,
                 "use_parent": False,
                 "category_filter": "sustainability",
-                "priority_metadata": ["co2_emissions", "green", "environmental"]
+                "priority_metadata": ["co2_emissions", "green", "environmental"],
+                "preferred_books": ["book_04_architecture", "book_05_materials"],
+                "authority_boost": 1.1,
             },
             PropTechDomain.LEGAL: {
                 "top_k": 5,
                 "use_rerank": False,  # Legal text is usually precise
                 "use_parent": True,
                 "category_filter": "legal",
-                "priority_metadata": ["regulation", "compliance", "standard"]
+                "priority_metadata": ["regulation", "compliance", "standard"],
+                "preferred_books": ["book_01_ivs"],
+                "authority_boost": 1.5,  # Strong boost for IVS in legal
             },
             PropTechDomain.GENERAL: {
                 "top_k": 8,
                 "use_rerank": True,
                 "use_parent": True,
                 "category_filter": None,
-                "priority_metadata": []
+                "priority_metadata": [],
+                "preferred_books": ["book_08_glossary"],
+                "authority_boost": 1.0,
             }
         }
         
@@ -337,34 +473,49 @@ class EnhancedSemanticRouter:
             return f"{domain.value}_query"
     
     def get_domain_context(self, domain: PropTechDomain) -> str:
-        """Get domain-specific context for LLM prompts."""
+        """Get domain-specific context for LLM prompts, referencing the book library."""
         domain_contexts = {
             PropTechDomain.VALUATION: """
-Focus on property valuation methodologies, IVS standards, market analysis, and appraisal techniques.
-Consider comparable sales, income approach, and cost approach methods.
+Focus on property valuation methodologies per IVS-2025 standards and The Appraisal of Real Estate (15th Ed.).
+Apply the three valuation approaches: Cost Approach, Sales Comparison Approach, and Income Approach.
+Cite IVS 104 (Market Value) and IVS 101/102 (Scope of Work, Assumptions) where applicable.
+Reference comparable sales adjustments, depreciation, and highest & best use analysis.
 """,
             PropTechDomain.ENERGY: """
-Focus on energy efficiency metrics, thermal performance, U-values, R-values, and consumption analysis.
-Consider building physics, insulation properties, and energy certification standards.
+Focus on energy efficiency per Sustainable Home Refurbishment reference.
+Apply building physics: U-values, R-values, thermal bridging, heat loss calculations.
+Reference energy performance certificates (A through G) and EU/national energy standards.
+Provide specific insulation strategies and quantified energy savings in kWh/year.
 """,
             PropTechDomain.FINANCE: """
-Focus on financial analysis, ROI calculations, investment metrics, and cost-benefit analysis.
-Consider NPV, IRR, payback periods, and lifecycle cost analysis.
+Focus on financial analysis per What Every Real Estate Investor Needs to Know About Cash Flow
+and The Book on Flipping Houses (J. Scott) for cost estimation.
+Apply Cap Rate, NOI, DCF, IRR, NPV, and Cash-on-Cash Return formulas.
+Convert energy savings into property value via Income Approach: Value = NOI / Cap Rate.
+Include specific cost estimates in $/sqft from renovation cost tables.
 """,
             PropTechDomain.RETROFIT: """
-Focus on renovation strategies, retrofit technologies, construction methods, and improvement options.
-Consider building upgrades, modernization, and performance enhancement techniques.
+Focus on renovation strategies per Green Building Illustrated and The Book on Flipping Houses.
+Provide architectural integration guidance for green technologies (solar, insulation, HVAC).
+Include structural feasibility warnings and cost estimates per component.
+Reference passive design principles, daylighting, and building envelope improvements.
 """,
             PropTechDomain.SUSTAINABILITY: """
-Focus on environmental impact, carbon footprint, green building standards, and sustainable practices.
-Consider LEED, BREEAM, energy certificates, and environmental regulations.
+Focus on environmental impact per Sustainable Construction and Green Building Illustrated.
+Apply life cycle analysis (LCA), embodied energy calculations, and carbon footprint metrics.
+Compare materials: rock wool vs EPS vs aerogel vs cellulose with specific thermal conductivity values.
+Reference LEED, BREEAM, and green building certification requirements.
 """,
             PropTechDomain.LEGAL: """
-Focus on building regulations, compliance requirements, legal standards, and regulatory frameworks.
-Consider building codes, safety standards, and legal obligations.
+Focus on regulatory compliance per International Valuation Standards (IVS) January 2025.
+Reference IVS 101 (Scope of Work), IVS 102 (Investigations), IVS 104 (Bases of Value).
+Include assumptions, limiting conditions, and disclaimer language per IVS requirements.
+This domain has the highest authority weight — all legal citations must be precise.
 """,
             PropTechDomain.GENERAL: """
-Provide comprehensive real estate analysis covering multiple aspects as relevant to the query.
+Provide comprehensive real estate analysis referencing REALES fundamentals.
+Explain basic real estate concepts (Easement, Zoning, Liens, Title) in consumer-friendly language.
+Reference specialized books when the query touches valuation, energy, finance, or sustainability.
 """,
         }
         

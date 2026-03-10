@@ -12,6 +12,13 @@ from typing import Optional
 from PIL import Image
 import numpy as np
 
+# Register HEIC/HEIF support so PIL can open iPhone photos
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+except ImportError:
+    pass
+
 from modules.vision.inference import get_inference_engine
 from modules.vision.heatmap import HeatmapGenerator
 from modules.physics.u_value import PhysicsEngine
@@ -61,7 +68,35 @@ class AnalysisPipeline:
         # Step 1: Download image from MinIO
         logger.info(f"[{job_id}] Step 1/5: Downloading image...")
         image_bytes = self.storage.download_image(file_key)
-        image = Image.open(BytesIO(image_bytes)).convert("RGB")
+
+        if not image_bytes or len(image_bytes) < 100:
+            raise ValueError(
+                f"Downloaded file is too small or empty ({len(image_bytes) if image_bytes else 0} bytes). "
+                f"Key: {file_key}"
+            )
+
+        # Detect obviously non-image content (XML error from MinIO, HTML, etc.)
+        header = image_bytes[:32]
+        if header.startswith(b'<?xml') or header.startswith(b'<Error'):
+            raise ValueError(
+                f"MinIO returned an XML error instead of image data for key: {file_key}. "
+                f"Content: {image_bytes[:200].decode('utf-8', errors='replace')}"
+            )
+
+        buf = BytesIO(image_bytes)
+        try:
+            image = Image.open(buf)
+            image = image.convert("RGB")
+        except Exception as img_err:
+            logger.error(
+                f"[{job_id}] PIL cannot open image ({len(image_bytes)} bytes, "
+                f"header={image_bytes[:16].hex()}): {img_err}"
+            )
+            raise ValueError(
+                f"Cannot decode image file (format not recognised). "
+                f"Size: {len(image_bytes)} bytes, key: {file_key}"
+            ) from img_err
+
         image_np = np.array(image)
 
         # Step 2: YOLO inference

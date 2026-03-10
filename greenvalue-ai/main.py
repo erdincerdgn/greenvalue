@@ -16,14 +16,15 @@ from io import BytesIO
 from fastapi import FastAPI, File, HTTPException, UploadFile, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-from typing import Optional, List
+from pydantic import BaseModel, Field, model_validator
+from typing import Dict, Optional, List
 
 from config.settings import get_settings
 from modules.vision.inference import get_inference_engine
 from modules.storage.minio_client import get_storage_service
 from modules.queue.consumer import get_queue_consumer
 from modules.pipeline import AnalysisPipeline
+from modules.physics.u_value import PhysicsEngine
 
 # ── Logging ──────────────────────────────────────────────────
 logging.basicConfig(
@@ -40,6 +41,7 @@ _state: dict = {
     "start_time": None,
     "pipeline": None,
     "queue_task": None,
+    "grpc_server": None,
 }
 
 
@@ -89,6 +91,22 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Queue consumer not started: {e}")
 
+    # 5. Start gRPC server
+    try:
+        from modules.grpc_server.server import create_grpc_server
+        grpc_port = settings.grpc_port
+        grpc_server = create_grpc_server(
+            pipeline=_state["pipeline"],
+            inference_engine=engine,
+            physics_engine=PhysicsEngine(),
+            port=grpc_port,
+        )
+        grpc_server.start()
+        _state["grpc_server"] = grpc_server
+        logger.info(f"gRPC server started on port {grpc_port}")
+    except Exception as e:
+        logger.warning(f"gRPC server not started: {e}")
+
     logger.info("=" * 60)
     logger.info("  GreenValue AI Engine — READY")
     logger.info("=" * 60)
@@ -97,6 +115,9 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     logger.info("Shutting down GreenValue AI Engine …")
+    if _state["grpc_server"]:
+        _state["grpc_server"].stop(grace=5)
+        logger.info("gRPC server stopped")
     if _state["queue_task"] and not _state["queue_task"].done():
         _state["queue_task"].cancel()
         try:
@@ -137,6 +158,17 @@ class AnalyzeRequest(BaseModel):
     property_id: str = Field(..., description="Property UUID")
     model_size: Optional[str] = Field(None, description="YOLO model size (n/s/m/l/x)")
 
+    @model_validator(mode='before')
+    @classmethod
+    def normalize_field_names(cls, values):
+        """Accept 'image_key' as an alias for 'file_key' (backward compat)."""
+        if isinstance(values, dict):
+            if 'image_key' in values and 'file_key' not in values:
+                values['file_key'] = values.pop('image_key')
+            # Also accept 'user_id' silently (sent by older backends)
+            values.pop('user_id', None)
+        return values
+
 
 class AnalyzeResponse(BaseModel):
     job_id: str
@@ -147,7 +179,7 @@ class AnalyzeResponse(BaseModel):
 class UValueRequest(BaseModel):
     component_type: str = Field(..., description="Component type: facade, roof, window, door")
     material: Optional[str] = Field(None, description="Material key from material database")
-    thickness_m: Optional[float] = Field(None, description="Material thickness in meters")
+    thickness_mm: Optional[float] = Field(None, description="Material thickness in millimeters")
     building_year: Optional[int] = Field(None, description="Construction year")
 
 
@@ -247,12 +279,11 @@ async def calculate_u_value(body: UValueRequest):
     physics = PhysicsEngine()
     try:
         result = physics.calculate_u_value(
-            component_type=body.component_type,
-            material=body.material,
-            thickness_m=body.thickness_m,
-            building_year=body.building_year,
+            material=body.material or body.component_type,
+            thickness_mm=body.thickness_mm or 0.0,
+            year_installed=body.building_year,
         )
-        return result
+        return {"u_value": result, "component_type": body.component_type, "material": body.material, "thickness_mm": body.thickness_mm, "building_year": body.building_year}
     except Exception as e:
         logger.error(f"U-Value calculation failed: {e}")
         raise HTTPException(status_code=400, detail=str(e))
@@ -262,12 +293,11 @@ async def calculate_u_value(body: UValueRequest):
 @app.get("/api/v1/materials", tags=["physics"])
 async def list_materials():
     """List available materials in the physics engine database."""
-    from modules.physics.u_value import PhysicsEngine
+    from modules.physics.u_value import PhysicsEngine, THERMAL_CONDUCTIVITY, STANDARD_UVALUES
 
-    physics = PhysicsEngine()
     return {
-        "materials": physics.MATERIAL_CONDUCTIVITY,
-        "component_types": list(physics.STANDARD_U_VALUES.keys()),
+        "materials": THERMAL_CONDUCTIVITY,
+        "component_types": list(STANDARD_UVALUES.keys()),
     }
 
 
@@ -275,6 +305,7 @@ async def list_materials():
 @app.get("/api/v1/model/info", tags=["model"])
 async def model_info():
     """Get information about the currently loaded YOLO model."""
+    from modules.vision.inference import COMPONENT_CLASSES
     engine = get_inference_engine()
     return {
         "model_loaded": engine.model is not None,
@@ -282,9 +313,9 @@ async def model_info():
         "model_path": str(engine.model_path),
         "device": str(engine.device),
         "gpu_info": engine.gpu_info,
-        "input_size": settings.yolo_img_size,
-        "confidence_threshold": settings.yolo_conf_threshold,
-        "classes": engine.CLASS_NAMES,
+        "input_size": settings.yolo_model_size,
+        "confidence_threshold": settings.yolo_confidence_threshold,
+        "classes": COMPONENT_CLASSES,
     }
 
 
@@ -500,7 +531,7 @@ def get_vision_rag_instance():
             
             _vision_rag_instance = MultiModalRAGPipeline(
                 rag_system=rag_system,
-                cv_service_url="http://localhost:8000"
+                cv_service_url=settings.cv_service_url
             )
             _vision_rag_instance.initialize()
             logger.info("Vision-RAG module initialized")
@@ -589,3 +620,505 @@ async def get_vision_rag_result(job_id: str):
     return results[job_id]
 
 
+# =============================================================================
+# OCR MODULE ENDPOINTS
+# Professional OCR Engine with hi_res, tesseract, hybrid, and fast strategies
+# =============================================================================
+
+class OCRProcessRequest(BaseModel):
+    strategy: Optional[str] = Field("hi_res", description="OCR strategy: hi_res, tesseract, hybrid, fast")
+    languages: Optional[str] = Field(None, description="Comma-separated language codes (e.g. 'eng,tur,deu')")
+    page_start: Optional[int] = Field(None, description="Start page (1-indexed)")
+    page_end: Optional[int] = Field(None, description="End page (1-indexed, inclusive)")
+
+
+# Lazy OCR engine instance
+_ocr_engine_instance = None
+
+
+def _get_ocr_engine():
+    """Get or create OCR engine (lazy loading)."""
+    global _ocr_engine_instance
+    if _ocr_engine_instance is None:
+        try:
+            from modules.ocr import OCREngine
+            _ocr_engine_instance = OCREngine()
+            _ocr_engine_instance.initialize()
+            logger.info("OCR Engine initialized for API")
+        except Exception as e:
+            logger.error(f"OCR Engine initialization failed: {e}")
+            raise HTTPException(status_code=503, detail=f"OCR Engine not available: {e}")
+    return _ocr_engine_instance
+
+
+@app.post("/api/v1/ocr/process", tags=["ocr"])
+async def ocr_process(
+    file: UploadFile = File(..., description="PDF or image file to process"),
+    strategy: str = Query("hi_res", description="OCR strategy: hi_res, tesseract, hybrid, fast"),
+    languages: Optional[str] = Query(None, description="Comma-separated language codes"),
+    page_start: Optional[int] = Query(None, description="Start page (1-indexed)"),
+    page_end: Optional[int] = Query(None, description="End page (1-indexed, inclusive)"),
+):
+    """
+    Professional OCR Processing
+
+    Upload a PDF or image and extract text, tables, and images using
+    the selected OCR strategy.
+
+    Strategies:
+    - **hi_res**: Unstructured API — best for tables, images, headers (primary)
+    - **tesseract**: Local Tesseract OCR — best for scanned docs, multi-language
+    - **hybrid**: hi_res + Tesseract cross-validation — maximum accuracy
+    - **fast**: PyPDF2 text extraction — fastest, no OCR
+    """
+    try:
+        from modules.ocr import OCREngine, OCRStrategy
+        import tempfile, os
+
+        ocr_engine = _get_ocr_engine()
+
+        strategy_map = {
+            "hi_res": OCRStrategy.HI_RES,
+            "tesseract": OCRStrategy.TESSERACT,
+            "hybrid": OCRStrategy.HYBRID,
+            "fast": OCRStrategy.FAST,
+        }
+        ocr_strategy = strategy_map.get(strategy)
+        if ocr_strategy is None:
+            raise HTTPException(status_code=400, detail=f"Invalid strategy: {strategy}")
+
+        lang_list = [l.strip() for l in languages.split(",")] if languages else None
+        page_range = (page_start, page_end) if page_start and page_end else None
+
+        # Save uploaded file to temp
+        content = await file.read()
+        suffix = "." + (file.filename.rsplit(".", 1)[-1] if "." in file.filename else "pdf")
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+
+        try:
+            result = await asyncio.to_thread(
+                ocr_engine.process,
+                tmp_path,
+                strategy=ocr_strategy,
+                languages=lang_list,
+                page_range=page_range,
+            )
+            return result.to_dict()
+        finally:
+            os.unlink(tmp_path)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"OCR processing failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/ocr/status", tags=["ocr"])
+async def ocr_status():
+    """Get OCR engine status and available backends."""
+    try:
+        ocr_engine = _get_ocr_engine()
+        return {
+            "status": "ready",
+            "initialized": ocr_engine._initialized,
+            "backends": {
+                "unstructured_api": ocr_engine._unstructured_available,
+                "tesseract": ocr_engine._tesseract_available,
+            },
+            "supported_strategies": ["hi_res", "tesseract", "hybrid", "fast"],
+            "supported_formats": ["pdf", "jpg", "jpeg", "png", "tiff", "bmp", "webp", "heif"],
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"status": "not_available", "error": str(e)}
+
+
+# =============================================================================
+# NEO4J KNOWLEDGE GRAPH ENDPOINTS
+# Property knowledge graph with Neo4j
+# =============================================================================
+
+# Lazy Neo4j instances
+_neo4j_client = None
+_neo4j_graph = None
+
+
+def _get_neo4j_graph():
+    """Get or create Neo4j graph (lazy loading)."""
+    global _neo4j_client, _neo4j_graph
+    if _neo4j_graph is None or not _neo4j_graph._initialized:
+        try:
+            from modules.graph import Neo4jClient, Neo4jConfig, PropertyKnowledgeGraph
+            cfg = Neo4jConfig(
+                uri=settings.neo4j_uri if hasattr(settings, "neo4j_uri") else "bolt://localhost:7687",
+                user=settings.neo4j_user if hasattr(settings, "neo4j_user") else "neo4j",
+                password=settings.neo4j_password if hasattr(settings, "neo4j_password") else "greenvalue_secret",
+                database=settings.neo4j_database if hasattr(settings, "neo4j_database") else "neo4j",
+            )
+            if _neo4j_graph is None:
+                _neo4j_graph = PropertyKnowledgeGraph(cfg)
+            ok = _neo4j_graph.initialize(seed=True)
+            if not ok:
+                _neo4j_graph = None
+                raise RuntimeError("PropertyKnowledgeGraph.initialize() returned False")
+            _neo4j_client = _neo4j_graph.client
+            logger.info("Neo4j Knowledge Graph initialized for API")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Neo4j initialization failed: {e}", exc_info=True)
+            _neo4j_graph = None
+            raise HTTPException(status_code=503, detail=f"Neo4j not available: {e}")
+    return _neo4j_graph
+
+
+@app.get("/api/v1/graph/status", tags=["graph"])
+async def graph_status():
+    """Get Neo4j knowledge graph status and statistics."""
+    try:
+        graph = _get_neo4j_graph()
+        stats = graph.get_stats()
+        return {"status": "connected", **stats}
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"status": "not_available", "error": str(e)}
+
+
+@app.get("/api/v1/graph/context", tags=["graph"])
+async def graph_context(
+    query: str = Query(..., description="Query to find relevant graph context for"),
+):
+    """
+    Get knowledge graph context for a query.
+    Returns relevant property relationships, concepts, and ripple effects.
+    """
+    try:
+        graph = _get_neo4j_graph()
+        context = await asyncio.to_thread(graph.get_graph_context, query)
+        return {"query": query, "graph_context": context}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Graph context failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class PropertyGraphRequest(BaseModel):
+    property_id: str = Field(..., description="Property UUID")
+    address: Optional[str] = Field(None, description="Property address")
+    property_type: Optional[str] = Field(None, description="Type: residential, commercial, etc.")
+    building_year: Optional[int] = Field(None, description="Construction year")
+    energy_label: Optional[str] = Field(None, description="Energy label (A-G)")
+    area_sqm: Optional[float] = Field(None, description="Property area in m2")
+    metadata: Optional[dict] = Field(None, description="Additional metadata")
+
+
+@app.post("/api/v1/graph/property", tags=["graph"])
+async def upsert_property(body: PropertyGraphRequest):
+    """
+    Upsert a property into the knowledge graph.
+    Creates or updates the property node and all relationships.
+    """
+    try:
+        graph = _get_neo4j_graph()
+        result = await asyncio.to_thread(
+            graph.upsert_property,
+            property_id=body.property_id,
+            title=body.address or body.property_id,
+            address=body.address or "",
+            city="",
+            building_year=body.building_year or 0,
+            building_type=body.property_type or "residential",
+            floor_area=body.area_sqm or 0.0,
+            energy_label=body.energy_label or "",
+            metadata=body.metadata,
+        )
+        return {"status": "ok", "property_id": body.property_id, "result": result}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Graph property upsert failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/graph/property/{property_id}/similar", tags=["graph"])
+async def find_similar_properties(
+    property_id: str,
+    limit: int = Query(5, ge=1, le=50, description="Max similar properties to return"),
+):
+    """Find properties similar to the given one in the knowledge graph."""
+    try:
+        graph = _get_neo4j_graph()
+        results = await asyncio.to_thread(graph.find_similar_properties, property_id, limit)
+        return {"property_id": property_id, "similar_properties": results}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Similar properties query failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/graph/ripple-effects/{improvement}", tags=["graph"])
+async def graph_ripple_effects(
+    improvement: str,
+):
+    """
+    Get predicted ripple effects for a property improvement.
+    E.g. 'insulation_upgrade', 'solar_installation', 'window_replacement'.
+    """
+    try:
+        graph = _get_neo4j_graph()
+        effects = await asyncio.to_thread(graph.get_ripple_effects, improvement)
+        return {"improvement": improvement, "effects": effects}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Ripple effects query failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ╔══════════════════════════════════════════════════════╗
+# ║        IVS-2025 REPORT GENERATION ENDPOINTS          ║
+# ╚══════════════════════════════════════════════════════╝
+
+_report_engine = None
+
+
+def _get_report_engine():
+    """Lazy-load the IVS Report Engine with chain-of-thought."""
+    global _report_engine
+    if _report_engine is None:
+        try:
+            from modules.report import (
+                ReportEngine,
+                ChainOfThoughtEngine,
+                ChartRenderer,
+                PDFRenderer,
+            )
+            # Try to reuse the existing RAG instance if available
+            rag = None
+            try:
+                rag = get_rag_instance()
+            except Exception:
+                logger.warning("RAG not available for chain-of-thought")
+            chain = ChainOfThoughtEngine(
+                rag_pipeline=rag,
+            )
+            _report_engine = ReportEngine(
+                chain_engine=chain,
+                chart_renderer=ChartRenderer(),
+                pdf_renderer=PDFRenderer(),
+            )
+            logger.info("✅ IVS Report Engine loaded")
+        except Exception as e:
+            logger.warning(f"Report Engine not available: {e}")
+            raise HTTPException(status_code=503, detail=f"Report engine unavailable: {e}")
+    return _report_engine
+
+
+class ReportRequest(BaseModel):
+    property_id: str
+    report_type: str = "full_ivs"   # full_ivs | summary | energy_only | upgrade_card
+    language: str = "en"            # en | tr | de
+    include_heatmap: bool = True
+    include_charts: bool = True
+    currency_symbol: str = "€"
+    currency_code: str = "EUR"
+    analysis_result: Dict = {}
+
+
+@app.post("/api/v1/report/generate", tags=["report"])
+async def generate_report(request: ReportRequest):
+    """
+    Generate an IVS-2025-compliant PDF report.
+    Runs the multi-book chain-of-thought (Physics → Cost → Finance → Appraisal)
+    and produces a professional PDF.
+    """
+    try:
+        from modules.report import ReportConfig, ReportType
+
+        engine = _get_report_engine()
+
+        type_map = {
+            "full_ivs": ReportType.FULL_IVS,
+            "summary": ReportType.SUMMARY,
+            "energy_only": ReportType.ENERGY_ONLY,
+            "upgrade_card": ReportType.UPGRADE_CARD,
+        }
+        report_type = type_map.get(request.report_type, ReportType.FULL_IVS)
+
+        config = ReportConfig(
+            report_type=report_type,
+            language=request.language,
+            include_heatmap=request.include_heatmap,
+            include_charts=request.include_charts,
+            currency_symbol=request.currency_symbol,
+            currency_code=request.currency_code,
+        )
+
+        result = await engine.generate(
+            property_id=request.property_id,
+            analysis_result=request.analysis_result,
+            config=config,
+        )
+
+        response = {
+            "report_id": result.report_id,
+            "property_id": result.property_id,
+            "report_type": result.report_type.value,
+            "sections_generated": result.sections_generated,
+            "ivs_compliance_warnings": result.ivs_compliance_warnings,
+            "chain_of_thought_log": result.chain_of_thought_log,
+            "generation_time_seconds": result.generation_time_seconds,
+            "generated_at": result.generated_at,
+            "has_pdf": len(result.pdf_bytes) > 0,
+            "pdf_size_bytes": len(result.pdf_bytes),
+        }
+
+        if not result.pdf_bytes:
+            response["metadata"] = result.metadata
+
+        return response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Report generation failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/report/generate/pdf", tags=["report"])
+async def generate_report_pdf(request: ReportRequest):
+    """
+    Generate and directly return the IVS-2025 PDF report as a downloadable file.
+    """
+    from fastapi.responses import Response
+
+    try:
+        from modules.report import ReportConfig, ReportType
+
+        engine = _get_report_engine()
+
+        type_map = {
+            "full_ivs": ReportType.FULL_IVS,
+            "summary": ReportType.SUMMARY,
+            "energy_only": ReportType.ENERGY_ONLY,
+            "upgrade_card": ReportType.UPGRADE_CARD,
+        }
+
+        config = ReportConfig(
+            report_type=type_map.get(request.report_type, ReportType.FULL_IVS),
+            language=request.language,
+            include_heatmap=request.include_heatmap,
+            include_charts=request.include_charts,
+            currency_symbol=request.currency_symbol,
+            currency_code=request.currency_code,
+        )
+
+        result = await engine.generate(
+            property_id=request.property_id,
+            analysis_result=request.analysis_result,
+            config=config,
+        )
+
+        if not result.pdf_bytes:
+            raise HTTPException(
+                status_code=500,
+                detail="PDF generation failed — reportlab may not be installed"
+            )
+
+        return Response(
+            content=result.pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="GreenValue_{result.report_id}.pdf"'
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Report PDF generation failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/report/generate/json", tags=["report"])
+async def generate_report_json(request: ReportRequest):
+    """
+    Generate a structured JSON report (no PDF rendering).
+    Returns all IVS sections, chain-of-thought log, and compliance
+    warnings in a JSON format suitable for frontend rendering.
+    """
+    try:
+        from modules.report import ReportConfig, ReportType
+
+        engine = _get_report_engine()
+
+        type_map = {
+            "full_ivs": ReportType.FULL_IVS,
+            "summary": ReportType.SUMMARY,
+            "energy_only": ReportType.ENERGY_ONLY,
+            "upgrade_card": ReportType.UPGRADE_CARD,
+        }
+        report_type = type_map.get(request.report_type, ReportType.FULL_IVS)
+
+        config = ReportConfig(
+            report_type=report_type,
+            language=request.language,
+            include_heatmap=request.include_heatmap,
+            include_charts=request.include_charts,
+            currency_symbol=request.currency_symbol,
+            currency_code=request.currency_code,
+        )
+
+        json_report = await engine.generate_json(
+            property_id=request.property_id,
+            analysis_result=request.analysis_result,
+            config=config,
+        )
+
+        return json_report
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"JSON report generation failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/report/ivs-sections", tags=["report"])
+async def get_ivs_sections(language: str = "en"):
+    """Return the IVS-2025 report section structure with localised titles."""
+    from modules.report import IVSTemplate, IVSSection
+    sections = []
+    for section in IVSTemplate.get_ordered_sections():
+        sections.append({
+            "section_id": section.value,
+            "title": IVSTemplate.get_section_title(section, language),
+            "is_appendix": section.value.startswith("appendix_"),
+        })
+    return {"language": language, "sections": sections}
+
+
+@app.get("/api/v1/report/books", tags=["report"])
+async def get_book_library():
+    """Return the RAG Knowledge Library (8-book expert mapping)."""
+    from modules.rag.router import BOOK_LIBRARY
+    books = []
+    for key, book in BOOK_LIBRARY.items():
+        books.append({
+            "key": key,
+            "book_id": book["book_id"],
+            "title": book["title"],
+            "domains": [d.value for d in book["domains"]],
+            "authority": book["authority"],
+            "expertise": book["expertise"],
+            "chain_role": book["chain_role"],
+            "chain_order": book["chain_order"],
+        })
+    return {"total_books": len(books), "books": books}

@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../core/prisma/prisma.service';
 import { RedisService } from '../core/redis/redis.service';
+import { StorageService } from '../core/storage/storage.service';
 import { UpdateUserProfileDto, SearchUserDto, AdminUpdateUserDto, UserStatsDto } from './dto';
 import { Prisma } from '@prisma/client';
+import { randomUUID } from 'crypto';
 
 const USER_SELECT = {
     id: true,
@@ -22,6 +24,7 @@ export class UserService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly redis: RedisService,
+        private readonly storage: StorageService,
     ) {}
 
     // ─── Find By ID ──────────────────────────────────────
@@ -86,6 +89,21 @@ export class UserService {
 
         await this.redis.del(`user:${userId}`);
         return user;
+    }
+
+    // ─── Avatar Upload URL ────────────────────────────────
+
+    async getAvatarUploadUrl(userId: string, fileName: string) {
+        const ext = fileName.split('.').pop() || 'jpg';
+        const fileKey = `avatars/${userId}/${randomUUID()}.${ext}`;
+
+        const uploadUrl = await this.storage.getPresignedUploadUrl(
+            StorageService.BUCKETS.RAW_UPLOADS,
+            fileKey,
+            3600,
+        );
+
+        return { uploadUrl, fileKey };
     }
 
     // ─── Admin: Update User ──────────────────────────────

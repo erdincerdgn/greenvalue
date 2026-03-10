@@ -24,15 +24,15 @@ import {
     AnalyzeImageDto,
     CalculateUValueDto,
     FindSimilarDto,
-    GenerateReportDto,
+    AiGenerateReportDto,
     AnalysisStatusResponseDto,
     UValueResultDto,
-    ReportResponseDto,
+    AiReportResponseDto,
     AIHealthResponseDto,
 } from './dto/ai-proxy.dto';
 
 @ApiTags('Analysis')
-@Controller('api/v1/analysis')
+@Controller('analysis')
 export class AIProxyController {
     private readonly logger = new Logger(AIProxyController.name);
 
@@ -117,6 +117,74 @@ export class AIProxyController {
     }
 
     // ==========================================
+    // PERSIST COMPLETED ANALYSIS TO DB
+    // ==========================================
+
+    @Post('persist')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth('JWT')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: 'Persist a completed analysis result to database',
+        description:
+            'Saves a completed analysis result so it can be referenced by reports and shown in property history. Accepts the full result payload so no re-fetch from AI engine is needed.',
+    })
+    @ApiResponse({ status: 200, description: 'Analysis persisted' })
+    async persistAnalysis(
+        @Body() body: {
+            jobId: string;
+            propertyId: string;
+            imageKey: string;
+            result: {
+                detections?: any[];
+                overallUValue?: number;
+                energyLabel?: string;
+                components?: any[];
+                renovations?: any[];
+                heatmapKey?: string;
+                modelVersion?: string;
+                inferenceTimeMs?: number;
+                pipelineTimeMs?: number;
+            };
+        },
+        @Request() req,
+    ): Promise<{ analysisId: string }> {
+        const userId = req.user.id;
+
+        // Use the result supplied by the client (already fetched from AI engine)
+        // This avoids a redundant re-fetch that fails if the AI engine cleared the job.
+        const result = body.result;
+        if (!result) {
+            this.logger.warn(`Persist called without result payload (jobId=${body.jobId})`);
+            return { analysisId: '' };
+        }
+
+        const analysisId = await this.aiProxyService.persistCompletedAnalysis({
+            jobId: body.jobId,
+            propertyId: body.propertyId,
+            userId,
+            imageKey: body.imageKey,
+            result: {
+                jobId: body.jobId,
+                status: 'COMPLETED',
+                progress: 100,
+                detections: result.detections ?? [],
+                overallUValue: result.overallUValue ?? 0,
+                energyLabel: result.energyLabel ?? '',
+                components: result.components ?? [],
+                renovations: result.renovations ?? [],
+                heatmapKey: result.heatmapKey ?? '',
+                modelVersion: result.modelVersion ?? '',
+                inferenceTimeMs: result.inferenceTimeMs ?? 0,
+                pipelineTimeMs: result.pipelineTimeMs ?? 0,
+                errorMessage: '',
+            },
+        });
+
+        return { analysisId };
+    }
+
+    // ==========================================
     // U-VALUE CALCULATION
     // ==========================================
 
@@ -192,9 +260,9 @@ export class AIProxyController {
         description:
             'Generates a comprehensive energy analysis report including detection results, U-Values, energy labels, and renovation ROI.',
     })
-    @ApiResponse({ status: 201, description: 'Report generated', type: ReportResponseDto })
-    @ApiBody({ type: GenerateReportDto })
-    async generateReport(@Body() dto: GenerateReportDto): Promise<ReportResponseDto> {
+    @ApiResponse({ status: 201, description: 'Report generated', type: AiReportResponseDto })
+    @ApiBody({ type: AiGenerateReportDto })
+    async generateReport(@Body() dto: AiGenerateReportDto): Promise<AiReportResponseDto> {
         const result = await this.aiProxyService.generateReport({
             analysisId: dto.analysisId,
             format: dto.format,

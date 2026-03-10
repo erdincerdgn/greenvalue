@@ -29,8 +29,8 @@ shapely==2.0.6                  # Geometric calculations (window area, polygon i
 # Architecture: "Generated PDF Reports" & "AI Heatmaps" stored in MinIO (Layer 6)
 matplotlib==3.9.3               # AI heatmap generation (thermal overlay visualizations)
 seaborn==0.13.2                 # Statistical visualization (energy efficiency distributions)
-reportlab==4.2.5                # PDF report generation (ROI reports, energy certificates)
-jinja2==3.1.4                   # HTML templating for structured report layouts
+weasyprint>=62.0                # HTML/CSS → PDF rendering (replaced ReportLab — design changes = HTML only)
+jinja2==3.1.4                   # Jinja2 HTML templating for report templates
 
 # --- API Server (FastAPI - Port 8000) ---
 fastapi==0.115.6
@@ -61,6 +61,7 @@ qdrant-client==1.12.1           # Vector similarity search (property embedding l
 # Compiled from proto/ai_service.proto
 grpcio==1.68.1                  # gRPC runtime
 grpcio-tools==1.68.1            # protoc compiler for .proto → Python stubs
+grpcio-reflection==1.68.1       # Server reflection (debugging with grpcurl)
 protobuf==5.29.2                # Protocol Buffers serialization (required by grpcio-tools)
 
 # --- MLOps (MLFlow - Port 5000) ---
@@ -91,9 +92,10 @@ requests==2.32.3                # Sync HTTP client (webhook callbacks, health ch
 # Added for property valuation and sustainability knowledge base
 # =============================================================================
 
-# --- LangChain Core ---
+# --- LangChain Core + LangGraph ---
 langchain==0.3.7
 langchain-core==0.3.15
+langgraph>=0.2.0                # LangGraph stateful workflow (chain-of-thought micro-agents)
 langchain-qdrant==0.1.4         # Qdrant vector store integration
 langchain-ollama==0.2.0         # Ollama LLM integration
 langchain-community==0.3.5      # Community integrations (UnstructuredAPIFileLoader)
@@ -115,6 +117,9 @@ sentence-transformers==3.2.1    # Cross-encoder models (ms-marco-MiniLM)
 
 markdownify==0.13.1
 chardet==5.2.0
+
+# --- Graph Database (Neo4j) ---
+neo4j==5.17.0                   # Neo4j Python driver (Bolt protocol)
 
 # --- Document Parsing ---
 PyPDF2==3.0.1                   # PDF parsing fallback (when Unstructured not available)

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, Min, Max } from 'class-validator';
+import { IsString, IsOptional, IsNumber, Min, Max, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreatePropertyDto {
@@ -39,6 +39,18 @@ export class CreatePropertyDto {
     @IsNumber()
     @Min(1)
     floorArea?: number;
+
+    @ApiPropertyOptional({ example: 52.3676, description: 'GPS latitude' })
+    @IsOptional()
+    @Type(() => Number)
+    @IsNumber()
+    latitude?: number;
+
+    @ApiPropertyOptional({ example: 4.9041, description: 'GPS longitude' })
+    @IsOptional()
+    @Type(() => Number)
+    @IsNumber()
+    longitude?: number;
 
     @ApiPropertyOptional({ description: 'MinIO key for thumbnail image' })
     @IsOptional()
@@ -149,4 +161,26 @@ export class PropertyListQueryDto {
     @IsOptional()
     @IsString()
     sortDirection?: 'asc' | 'desc';
+}
+
+// ─── Upload URL DTOs ─────────────────────────────────
+
+export class UploadUrlDto {
+    @ApiProperty({ example: 'photo_001.jpg', description: 'File name for the upload' })
+    @IsString()
+    @IsNotEmpty()
+    fileName: string;
+
+    @ApiProperty({ example: 'image/jpeg', description: 'MIME type of the file' })
+    @IsString()
+    @IsNotEmpty()
+    contentType: string;
+}
+
+export class UploadUrlResponseDto {
+    @ApiProperty({ description: 'Pre-signed URL for direct upload to RustFS' })
+    uploadUrl: string;
+
+    @ApiProperty({ description: 'Object storage key for the uploaded file' })
+    fileKey: string;
 }

@@ -23,6 +23,16 @@ from .router import EnhancedSemanticRouter, AdaptiveRAGStrategy
 from .graph import KnowledgeGraph, PropertyGraph
 from .memory import SQLiteMemory
 
+# Neo4j-backed graph (preferred when available)
+try:
+    from modules.graph import PropertyKnowledgeGraph, Neo4jClient, Neo4jConfig
+    _neo4j_available = True
+except ImportError:
+    PropertyKnowledgeGraph = None
+    Neo4jClient = None
+    Neo4jConfig = None
+    _neo4j_available = False
+
 logger = logging.getLogger("greenvalue-rag")
 
 
@@ -108,6 +118,26 @@ class GreenValueRAG:
             self._graph = KnowledgeGraph()
             self._property_graph = PropertyGraph(self._llm)
             
+            # ── Neo4j Knowledge Graph (preferred over in-memory) ──
+            self._neo4j_graph = None
+            if _neo4j_available and PropertyKnowledgeGraph is not None:
+                try:
+                    neo4j_cfg = Neo4jConfig(
+                        uri=getattr(self.config, "neo4j_uri", "bolt://localhost:7687"),
+                        user=getattr(self.config, "neo4j_user", "neo4j"),
+                        password=getattr(self.config, "neo4j_password", "greenvalue_secret"),
+                        database=getattr(self.config, "neo4j_database", "neo4j"),
+                    )
+                    self._neo4j_graph = PropertyKnowledgeGraph(neo4j_cfg)
+                    if self._neo4j_graph.initialize(seed=False):
+                        logger.info("✅ Neo4j Knowledge Graph connected (pipeline)")
+                    else:
+                        logger.warning("⚠️ Neo4j Knowledge Graph failed to initialize")
+                        self._neo4j_graph = None
+                except Exception as e:
+                    logger.warning(f"⚠️ Neo4j unavailable in pipeline, using in-memory: {e}")
+                    self._neo4j_graph = None
+            
             self._initialized = True
             logger.info("✅ GreenValue RAG initialized")
             return True
@@ -191,13 +221,25 @@ class GreenValueRAG:
         # Step 5: Build context
         context = self._build_context(docs)
         
-        # Graph context (optional - may not be available if no graph DB)
+        # Graph context (Neo4j preferred, in-memory fallback)
         graph_context = ""
         try:
-            if self._graph:
+            if self._neo4j_graph is not None:
+                graph_context = self._neo4j_graph.get_graph_context(question)
+                if graph_context:
+                    logger.info(f"  → Neo4j graph context enriched ({len(graph_context)} chars)")
+                else:
+                    logger.info("  → Neo4j graph: no matching concepts found")
+            elif self._graph:
                 graph_context = self._graph.get_graph_context(question)
+                if graph_context:
+                    logger.info("  → In-memory graph context enriched")
+                else:
+                    logger.info("  → In-memory graph: no matching concepts")
+            else:
+                logger.info("  → No graph backend available")
         except Exception as e:
-            logger.debug(f"Graph context unavailable: {e}")
+            logger.warning(f"Graph context unavailable: {e}", exc_info=True)
         
         user_context = self._memory.get_personalization_context(user_id)
         

@@ -4,7 +4,7 @@
 // Usage:  npx ts-node scripts/seed.ts
 // ============================================================
 
-import { PrismaClient, Prisma, Role, AnalysisStatus, EnergyLabel, ReportFormat } from '@prisma/client';
+import { PrismaClient, Prisma, Role, AnalysisStatus, EnergyLabel, ReportFormat, ReportType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 
@@ -262,15 +262,41 @@ async function main() {
   const completedAnalyses = analyses.filter((a) => a.status === AnalysisStatus.COMPLETED);
   let reportCount = 0;
 
+  const reportTypes: ReportType[] = [
+    ReportType.FULL_IVS, ReportType.FULL_IVS,
+    ReportType.ENERGY_CERTIFICATE, ReportType.ROI_ANALYSIS, ReportType.COMPARISON,
+  ];
+  const reportLanguages = ['en', 'tr', 'de'];
+
   for (const analysis of completedAnalyses) {
     // ~70% of completed analyses get a report
     if (Math.random() > 0.3) {
+      const reportType = pick(reportTypes);
+      const language = pick(reportLanguages);
+      const ext = pick([ReportFormat.PDF, ReportFormat.PDF, ReportFormat.JSON]) === ReportFormat.PDF ? 'pdf' : 'json';
+      const format = ext === 'pdf' ? ReportFormat.PDF : ReportFormat.JSON;
+
       await prisma.report.create({
         data: {
-          format: pick([ReportFormat.PDF, ReportFormat.PDF, ReportFormat.JSON]),
-          fileKey: `pdf-reports/${analysis.propertyId}/${randomUUID().slice(0, 8)}_report.pdf`,
+          format,
+          reportType,
+          fileKey: `pdf-reports/${analysis.propertyId}/${randomUUID().slice(0, 8)}_report.${ext}`,
           fileSize: randomInt(200_000, 2_500_000),
           title: `Energy Performance Report — ${new Date(analysis.createdAt).toLocaleDateString('en-GB')}`,
+          language,
+          generationTimeMs: randomFloat(800, 5000),
+          ivsComplianceWarnings: Math.random() > 0.6
+            ? [
+                'Market data sample size below recommended minimum (< 5 comparables)',
+                'Building age exceeds 30 years — condition adjustment applied',
+              ]
+            : Prisma.JsonNull,
+          chainOfThoughtLog: [
+            { step: 'detection', detail: `YOLO11m-seg detected ${randomInt(3, 8)} components`, durationMs: randomFloat(100, 400) },
+            { step: 'u_value', detail: 'Calculated U-values for all facade components', durationMs: randomFloat(50, 200) },
+            { step: 'energy_label', detail: `Assigned label based on overall U=${randomFloat(0.8, 3.2)}`, durationMs: randomFloat(10, 50) },
+            { step: 'report_gen', detail: `Generated ${ext.toUpperCase()} report (${language})`, durationMs: randomFloat(500, 3000) },
+          ],
           analysisId: analysis.id,
           propertyId: analysis.propertyId,
           userId: analysis.userId,

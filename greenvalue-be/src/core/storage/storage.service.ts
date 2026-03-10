@@ -26,7 +26,10 @@ export interface UploadResult {
 @Injectable()
 export class StorageService implements OnModuleInit {
     private readonly logger = new Logger(StorageService.name);
+    /** Internal client — used for server-side uploads, downloads, bucket ops */
     private client: Minio.Client;
+    /** Public client — used ONLY for presigned URL generation with external hostname */
+    private publicClient: Minio.Client;
 
     public static readonly BUCKETS = {
         RAW_UPLOADS: 'raw-uploads',
@@ -37,13 +40,40 @@ export class StorageService implements OnModuleInit {
     constructor(private readonly config: ConfigService) {}
 
     async onModuleInit() {
+        const endPoint = this.config.get('MINIO_ENDPOINT', 'localhost');
+        const port = parseInt(this.config.get('MINIO_PORT', '9000'), 10);
+        const useSSL = this.config.get('MINIO_USE_SSL', 'false') === 'true';
+        const accessKey = this.config.get('MINIO_ACCESS_KEY', 'greenvalue');
+        const secretKey = this.config.get('MINIO_SECRET_KEY', 'greenvalue_secret');
+
+        // Internal client talks to RustFS inside Docker network
         this.client = new Minio.Client({
-            endPoint: this.config.get('MINIO_ENDPOINT', 'localhost'),
-            port: parseInt(this.config.get('MINIO_PORT', '9000'), 10),
-            useSSL: this.config.get('MINIO_USE_SSL', 'false') === 'true',
-            accessKey: this.config.get('MINIO_ACCESS_KEY', 'greenvalue'),
-            secretKey: this.config.get('MINIO_SECRET_KEY', 'greenvalue_secret'),
+            endPoint,
+            port,
+            useSSL,
+            accessKey,
+            secretKey,
         });
+
+        // Public client generates presigned URLs with the external hostname/port
+        // so mobile/browser can PUT/GET directly. Signature is bound to Host header,
+        // so we need a separate client with the public endpoint.
+        const publicUrl = this.config.get('MINIO_PUBLIC_URL', '');
+        if (publicUrl) {
+            const parsed = new URL(publicUrl);
+            this.publicClient = new Minio.Client({
+                endPoint: parsed.hostname,
+                port: parseInt(parsed.port || (parsed.protocol === 'https:' ? '443' : '80'), 10),
+                useSSL: parsed.protocol === 'https:',
+                accessKey,
+                secretKey,
+                region: 'us-east-1', // Explicit region prevents network call for GetBucketLocation
+            });
+            this.logger.log(`Presigned URLs will use public endpoint: ${publicUrl}`);
+        } else {
+            this.publicClient = this.client;
+            this.logger.log('Presigned URLs use internal endpoint (no MINIO_PUBLIC_URL set)');
+        }
 
         await this.ensureBuckets();
         this.logger.log('✅ RustFS (S3) connected and buckets verified');
@@ -103,7 +133,8 @@ export class StorageService implements OnModuleInit {
         key: string,
         expirySeconds = 3600,
     ): Promise<string> {
-        return this.client.presignedPutObject(bucket, key, expirySeconds);
+        // Use publicClient so the signature matches the Host the mobile/browser will actually send
+        return this.publicClient.presignedPutObject(bucket, key, expirySeconds);
     }
 
     async getPresignedDownloadUrl(
@@ -111,7 +142,7 @@ export class StorageService implements OnModuleInit {
         key: string,
         expirySeconds = 3600,
     ): Promise<string> {
-        return this.client.presignedGetObject(bucket, key, expirySeconds);
+        return this.publicClient.presignedGetObject(bucket, key, expirySeconds);
     }
 
     // ─── Object Info & Delete ────────────────────────────

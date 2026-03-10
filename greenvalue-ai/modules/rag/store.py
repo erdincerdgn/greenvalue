@@ -155,9 +155,10 @@ class GreenValueDocumentStore:
     def get_retriever(
         self,
         category_filter: Optional[str] = None,
+        book_ids: Optional[List[str]] = None,
         top_k: int = 10
     ):
-        """Get a retriever with optional category filtering."""
+        """Get a retriever with optional category and/or book_id filtering."""
         if not self._initialized:
             self.initialize()
         
@@ -175,16 +176,37 @@ class GreenValueDocumentStore:
         
         search_kwargs = {"k": top_k}
         
+        # Build Qdrant filter conditions
+        filter_conditions = []
+        
         if category_filter:
-            search_kwargs["filter"] = models.Filter(
-                must=[
-                    models.FieldCondition(
-                        key="metadata.category",
-                        match=models.MatchValue(value=category_filter)
-                    )
-                ]
+            filter_conditions.append(
+                models.FieldCondition(
+                    key="metadata.category",
+                    match=models.MatchValue(value=category_filter)
+                )
             )
             logger.info(f"🏷️ Category filter: {category_filter}")
+        
+        if book_ids:
+            if len(book_ids) == 1:
+                filter_conditions.append(
+                    models.FieldCondition(
+                        key="metadata.book_id",
+                        match=models.MatchValue(value=book_ids[0])
+                    )
+                )
+            else:
+                filter_conditions.append(
+                    models.FieldCondition(
+                        key="metadata.book_id",
+                        match=models.MatchAny(any=book_ids)
+                    )
+                )
+            logger.info(f"📚 Book filter: {book_ids}")
+        
+        if filter_conditions:
+            search_kwargs["filter"] = models.Filter(must=filter_conditions)
         
         return vector_store.as_retriever(search_kwargs=search_kwargs)
     

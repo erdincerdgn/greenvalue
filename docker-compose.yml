@@ -86,7 +86,7 @@ services:
     security_opt:
       - "no-new-privileges:true"
     ports:
-      - "9000:9000"    # S3 API
+      - "9002:9000"    # S3 API (host 9002 → container 9000)
       - "9001:9001"    # Web Console
     environment:
       - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY:-greenvalue}
@@ -129,6 +129,7 @@ services:
       mc mb greenvalue/pdf-reports --ignore-existing;
       mc mb greenvalue/ai-heatmaps --ignore-existing;
       mc anonymous set download greenvalue/pdf-reports;
+      mc anonymous set download greenvalue/raw-uploads;
       echo 'RustFS buckets initialized successfully';
       exit 0;
       "
@@ -153,13 +154,15 @@ services:
       - DIRECT_URL=postgresql://${POSTGRES_USER:-greenvalue}:${POSTGRES_PASSWORD:-greenvalue_secret}@postgres:5432/${POSTGRES_DB:-greenvalue}?schema=public
       - REDIS_URL=redis://redis:6379
       - AI_SERVICE_URL=http://greenvalue-ai:8000
+      - AI_ENGINE_URL=http://greenvalue-ai:8000
       - AI_GRPC_HOST=greenvalue-ai
       - AI_GRPC_PORT=50051
-      - MINIO_ENDPOINT=greenvalue-rustfs
+      - MINIO_ENDPOINT=rustfs
       - MINIO_PORT=9000
       - MINIO_USE_SSL=false
       - MINIO_ACCESS_KEY=${RUSTFS_ACCESS_KEY:-greenvalue}
       - MINIO_SECRET_KEY=${RUSTFS_SECRET_KEY:-greenvalue_secret}
+      - MINIO_PUBLIC_URL=${MINIO_PUBLIC_URL:-http://192.168.1.106:9002}
       - JWT_SECRET=${JWT_SECRET:-greenvalue_jwt_secret_change_me}
       - JWT_EXPIRATION=7d
       - ENABLE_SWAGGER=true
@@ -226,6 +229,16 @@ services:
       - MINIO_BUCKET_HEATMAPS=ai-heatmaps
       # PostgreSQL
       - DATABASE_URL=postgresql://${POSTGRES_USER:-greenvalue}:${POSTGRES_PASSWORD:-greenvalue_secret}@postgres:5432/${POSTGRES_DB:-greenvalue}
+      # Neo4j Graph Database
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=${NEO4J_USER:-neo4j}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-greenvalue_secret}
+      - NEO4J_DATABASE=neo4j
+      # Unstructured API (OCR)
+      - UNSTRUCTURED_API_URL=http://greenvalue-unstructured:8000/general/v0/general
+      - UNSTRUCTURED_API_KEY=greenvalue_api_key
+      # Ollama LLM
+      - OLLAMA_HOST=http://ollama:11434
     volumes:
       - ./greenvalue-ai:/app
       - ai-models:/app/data/models
@@ -237,6 +250,8 @@ services:
       rustfs:
         condition: service_healthy
       postgres:
+        condition: service_healthy
+      neo4j:
         condition: service_healthy
     networks:
       - greenvalue-net
@@ -304,6 +319,42 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================
+  # Graph Database: Neo4j (Property Knowledge Graph)
+  # Ports: 7474 (HTTP/Browser) | 7687 (Bolt)
+  # ============================================================
+  neo4j:
+    image: neo4j:5.17.0-community
+    container_name: greenvalue-neo4j
+    restart: unless-stopped
+    ports:
+      - "7474:7474"    # Neo4j Browser
+      - "7687:7687"    # Bolt protocol
+    environment:
+      - NEO4J_AUTH=${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-greenvalue_secret}
+      - NEO4J_PLUGINS=["apoc", "graph-data-science"]
+      - NEO4J_server_memory_heap_initial__size=256m
+      - NEO4J_server_memory_heap_max__size=512m
+      - NEO4J_server_memory_pagecache_size=256m
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*,gds.*
+      - NEO4J_dbms_security_procedures_allowlist=apoc.*,gds.*
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+    networks:
+      - greenvalue-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
       start_period: 60s
     logging:
       driver: "json-file"
@@ -542,4 +593,8 @@ volumes:
   prometheus-data:
     driver: local
   grafana-data:
+    driver: local
+  neo4j-data:
+    driver: local
+  neo4j-logs:
     driver: local

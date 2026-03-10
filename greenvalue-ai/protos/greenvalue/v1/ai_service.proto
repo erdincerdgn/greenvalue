@@ -26,6 +26,12 @@ service AIService {
   // Find visually similar properties
   rpc FindSimilarProperties (FindSimilarRequest) returns (FindSimilarResponse);
 
+  // Get property knowledge graph relationships
+  rpc GetPropertyGraph (GetPropertyGraphRequest) returns (GetPropertyGraphResponse);
+
+  // Run chain-of-thought multi-book analysis
+  rpc ChainOfThoughtAnalysis (ChainOfThoughtRequest) returns (ChainOfThoughtResponse);
+
   // Health check
   rpc HealthCheck (HealthCheckRequest) returns (HealthCheckResponse);
 }
@@ -193,6 +199,7 @@ enum ReportType {
   ENERGY_CERTIFICATE = 1;       // Full energy efficiency report
   ROI_ANALYSIS = 2;             // Renovation ROI report
   COMPARISON = 3;               // Before/after comparison
+  FULL_IVS = 4;                 // Complete IVS-2025 valuation report
 }
 
 message GenerateReportResponse {
@@ -221,6 +228,97 @@ message SimilarProperty {
   float similarity_score = 2;   // 0.0 - 1.0
   string energy_label = 3;
   string thumbnail_url = 4;
+}
+
+// ============================================================
+// Property Knowledge Graph
+// ============================================================
+
+message GetPropertyGraphRequest {
+  string property_id = 1;
+  string query = 2;                           // Optional focus query (e.g., "insulation impact")
+  repeated string improvement_types = 3;      // Filter: "insulation_upgrade", "solar_installation", etc.
+}
+
+message GetPropertyGraphResponse {
+  repeated GraphRelation relations = 1;
+  repeated RippleEffect ripple_effects = 2;
+  repeated string related_factors = 3;
+  string summary = 4;                         // Human-readable graph context
+}
+
+message GraphRelation {
+  string source = 1;
+  string relation = 2;
+  string target = 3;
+  float confidence = 4;
+}
+
+message RippleEffect {
+  string improvement = 1;
+  string factor = 2;
+  float change_percent = 3;                   // Positive = increase, negative = decrease
+}
+
+// ============================================================
+// Chain-of-Thought Multi-Book Analysis
+// ============================================================
+
+message ChainOfThoughtRequest {
+  string property_id = 1;
+  repeated DetectionInput detections = 2;
+  repeated UValueInput u_values = 3;
+  string energy_label = 4;
+  map<string, string> property_meta = 5;
+}
+
+message DetectionInput {
+  string class_name = 1;
+  float confidence = 2;
+  float area_m2 = 3;
+  string condition = 4;
+  float u_value = 5;
+}
+
+message UValueInput {
+  string component_type = 1;
+  float u_value = 2;
+  float area_m2 = 3;
+  float heat_loss_kwh = 4;
+}
+
+message ChainOfThoughtResponse {
+  bool success = 1;
+  repeated UpgradeRecommendation upgrades = 2;
+  float total_cost = 3;
+  float total_value_add = 4;
+  float aggregate_roi = 5;
+  string label_before = 6;
+  string label_after = 7;
+  repeated StepLog step_logs = 8;
+  float duration_seconds = 9;
+  string error = 10;
+}
+
+message UpgradeRecommendation {
+  string component = 1;
+  string action = 2;
+  float cost = 3;
+  float value_add = 4;
+  float roi_percent = 5;
+  float payback_years = 6;
+  float energy_savings_kwh = 7;
+  float co2_reduction_kg = 8;
+  string book_source = 9;
+}
+
+message StepLog {
+  string step_name = 1;
+  string book_id = 2;
+  string query_used = 3;
+  int32 chunks_retrieved = 4;
+  float duration_seconds = 5;
+  string summary = 6;
 }
 
 // ============================================================

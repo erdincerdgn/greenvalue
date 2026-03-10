@@ -18,8 +18,9 @@ class RAGConfig:
     ollama_host: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
     unstructured_url: str = os.getenv(
         "UNSTRUCTURED_API_URL", 
-        "http://localhost:8000/general/v0/general"
+        "http://greenvalue-unstructured:8000/general/v0/general"
     )
+    unstructured_api_key: str = os.getenv("UNSTRUCTURED_API_KEY", "")
     
     # Collection names
     child_collection: str = "greenvalue_child"
@@ -38,6 +39,16 @@ class RAGConfig:
     
     # LLM settings
     llm_model: str = os.getenv("RAG_LLM_MODEL", "llama3.2:3b")
+    
+    # Neo4j Graph Database
+    neo4j_uri: str = os.getenv("NEO4J_URI", "bolt://localhost:7687")
+    neo4j_user: str = os.getenv("NEO4J_USER", "neo4j")
+    neo4j_password: str = os.getenv("NEO4J_PASSWORD", "greenvalue_secret")
+    neo4j_database: str = os.getenv("NEO4J_DATABASE", "neo4j")
+    
+    # OCR settings
+    ocr_default_strategy: str = os.getenv("OCR_STRATEGY", "hi_res")
+    ocr_languages: str = os.getenv("OCR_LANGUAGES", "eng,tur,deu,fra")
     
     # Retrieval settings
     top_k_initial: int = 10

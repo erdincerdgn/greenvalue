@@ -227,7 +227,7 @@ Return only the variations, one per line, without explanations.
         try:
             # Use fast model for query expansion
             self.llm = OllamaLLM(
-                model="llama3.2:1b",
+                model="llama3.2:3b",
                 base_url=self.ollama_host,
                 temperature=0.3  # Some creativity for variations
             )

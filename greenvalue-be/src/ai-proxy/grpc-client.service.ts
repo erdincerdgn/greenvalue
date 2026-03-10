@@ -83,6 +83,64 @@ export interface HealthCheckResponse {
     totalAnalyses: number;
 }
 
+// ── Property Graph ──
+
+export interface GraphRelation {
+    source: string;
+    relation: string;
+    target: string;
+    confidence: number;
+}
+
+export interface RippleEffect {
+    improvement: string;
+    factor: string;
+    changePercent: number;
+}
+
+export interface GetPropertyGraphResponse {
+    relations: GraphRelation[];
+    rippleEffects: RippleEffect[];
+    relatedFactors: string[];
+    summary: string;
+}
+
+// ── Chain-of-Thought ──
+
+export interface UpgradeRecommendation {
+    component: string;
+    action: string;
+    cost: number;
+    valueAdd: number;
+    roiPercent: number;
+    paybackYears: number;
+    energySavingsKwh: number;
+    co2ReductionKg: number;
+    bookSource: string;
+}
+
+export interface StepLog {
+    stepName: string;
+    bookId: string;
+    queryUsed: string;
+    chunksRetrieved: number;
+    durationSeconds: number;
+    summary: string;
+}
+
+export interface ChainOfThoughtResponse {
+    success: boolean;
+    upgrades: UpgradeRecommendation[];
+    totalCost: number;
+    totalValueAdd: number;
+    aggregateRoi: number;
+    labelBefore: string;
+    labelAfter: string;
+    stepLogs: StepLog[];
+    durationSeconds: number;
+    error: string;
+}
+
 export class GrpcConnectionError extends Error {
     constructor(message: string) {
         super(message);
@@ -96,7 +154,7 @@ export class GrpcClientService implements OnModuleInit, OnModuleDestroy {
     private client: any;
     private connected = false;
 
-    constructor(private readonly configService: ConfigService) {}
+    constructor(private readonly configService: ConfigService) { }
 
     async onModuleInit(): Promise<void> {
         await this.connect();
@@ -125,24 +183,24 @@ export class GrpcClientService implements OnModuleInit, OnModuleDestroy {
             });
 
             const grpcObject = grpc.loadPackageDefinition(packageDefinition);
-            const greenValuePackage = (grpcObject as any).greenvalue?.v1;
+            const greenValuePackage = (grpcObject as any).greenvalue?.ai?.v1;
 
-            if (!greenValuePackage?.GreenValueAI) {
-                this.logger.warn('GreenValueAI service not found in proto definition');
+            if (!greenValuePackage?.AIService) {
+                this.logger.warn('AIService not found in proto definition');
                 return;
             }
 
-            const host = this.configService.get('AI_ENGINE_GRPC_HOST', 'localhost');
-            const port = this.configService.get('AI_ENGINE_GRPC_PORT', '50051');
+            const host = this.configService.get('AI_GRPC_HOST', 'localhost');
+            const port = this.configService.get('AI_GRPC_PORT', '50051');
             const address = `${host}:${port}`;
 
-            this.client = new greenValuePackage.GreenValueAI(
+            this.client = new greenValuePackage.AIService(
                 address,
                 grpc.credentials.createInsecure(),
                 {
-                    'grpc.keepalive_time_ms': 15000,
-                    'grpc.keepalive_timeout_ms': 5000,
-                    'grpc.keepalive_permit_without_calls': 1,
+                    'grpc.keepalive_time_ms': 120000,
+                    'grpc.keepalive_timeout_ms': 20000,
+                    'grpc.keepalive_permit_without_calls': 0,
                     'grpc.max_receive_message_length': 50 * 1024 * 1024,
                     'grpc.max_send_message_length': 50 * 1024 * 1024,
                 },
@@ -206,13 +264,62 @@ export class GrpcClientService implements OnModuleInit, OnModuleDestroy {
         buildingYear?: number;
         confidenceThreshold?: number;
     }): Promise<AnalyzeImageResponse> {
-        return this.promisify('AnalyzeImage', request);
+        // Map DTO field names to proto camelCase equivalents
+        // Proto: file_key → JS (keepCase:false): fileKey
+        const grpcRequest = {
+            fileKey: request.imageKey,
+            propertyId: request.propertyId,
+            userId: request.userId,
+            buildingType: request.buildingType,
+            buildingYear: request.buildingYear,
+            confidenceThreshold: request.confidenceThreshold,
+        };
+        const raw: any = await this.promisify('AnalyzeImage', grpcRequest);
+        return {
+            jobId: raw.jobId || '',
+            status: this.mapAnalysisStatus(raw.status),
+        };
     }
 
     async getAnalysisStatus(request: {
         jobId: string;
     }): Promise<AnalysisStatusResponse> {
-        return this.promisify('GetAnalysisStatus', request);
+        const raw: any = await this.promisify('GetAnalysisStatus', request);
+        // gRPC response has nested 'result' (AnalysisResult). Flatten into our interface.
+        const r = raw.result || {};
+        return {
+            jobId: raw.jobId || request.jobId,
+            status: this.mapAnalysisStatus(raw.status),
+            progress: raw.progressPercent || 0,
+            detections: (r.detections || []).map((d: any) => ({
+                className: d.className || '',
+                confidence: d.confidence || 0,
+                bbox: d.bbox
+                    ? [d.bbox.xMin, d.bbox.yMin, d.bbox.xMax, d.bbox.yMax]
+                    : [],
+            })),
+            overallUValue: r.overallUValue || 0,
+            energyLabel: r.energyLabel || '',
+            components: r.components || [],
+            renovations: r.renovations || [],
+            heatmapKey: r.heatmapKey || '',
+            modelVersion: r.modelVersion || '',
+            inferenceTimeMs: r.inferenceTimeMs || 0,
+            pipelineTimeMs: 0,
+            errorMessage: raw.errorMessage || '',
+        };
+    }
+
+    /** Map gRPC AnalysisStatus enum (0-4) to string label */
+    private mapAnalysisStatus(status: number | string): string {
+        const map: Record<number, string> = {
+            0: 'UNKNOWN',
+            1: 'QUEUED',
+            2: 'PROCESSING',
+            3: 'COMPLETED',
+            4: 'FAILED',
+        };
+        return typeof status === 'string' ? status : map[status] || 'UNKNOWN';
     }
 
     async calculateUValue(request: {
@@ -241,5 +348,34 @@ export class GrpcClientService implements OnModuleInit, OnModuleDestroy {
 
     async healthCheck(): Promise<HealthCheckResponse> {
         return this.promisify('HealthCheck', {});
+    }
+
+    async getPropertyGraph(request: {
+        propertyId: string;
+        query?: string;
+        improvementTypes?: string[];
+    }): Promise<GetPropertyGraphResponse> {
+        return this.promisify('GetPropertyGraph', request);
+    }
+
+    async chainOfThoughtAnalysis(request: {
+        propertyId: string;
+        detections: Array<{
+            className: string;
+            confidence: number;
+            areaM2: number;
+            condition: string;
+            uValue: number;
+        }>;
+        uValues: Array<{
+            componentType: string;
+            uValue: number;
+            areaM2: number;
+            heatLossKwh: number;
+        }>;
+        energyLabel?: string;
+        propertyMeta?: Record<string, string>;
+    }): Promise<ChainOfThoughtResponse> {
+        return this.promisify('ChainOfThoughtAnalysis', request);
     }
 }

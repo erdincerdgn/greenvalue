@@ -46,6 +46,13 @@ enum ReportFormat {
   JSON
 }
 
+enum ReportType {
+  ENERGY_CERTIFICATE // Energy efficiency report
+  ROI_ANALYSIS       // Renovation ROI analysis
+  COMPARISON         // Before/after comparison
+  FULL_IVS           // Complete IVS-2025 valuation
+}
+
 // ── Users ───────────────────────────────────────────────────
 
 model User {
@@ -149,9 +156,16 @@ model Analysis {
 model Report {
   id         String       @id @default(uuid())
   format     ReportFormat @default(PDF)
+  reportType ReportType   @default(FULL_IVS)
   fileKey    String       // MinIO key for generated report
   fileSize   Int?         // bytes
   title      String?
+  language   String?      @default("en") // "en", "tr", "de"
+
+  // Generation metadata
+  generationTimeMs       Float?   // PDF/JSON generation duration
+  ivsComplianceWarnings  Json?    // Array of IVS compliance warning strings
+  chainOfThoughtLog      Json?    // Step-by-step chain reasoning log
 
   analysisId String   @unique
   analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
@@ -165,6 +179,7 @@ model Report {
   createdAt  DateTime @default(now())
 
   @@index([userId])
+  @@index([reportType])
   @@map("reports")
 }
 

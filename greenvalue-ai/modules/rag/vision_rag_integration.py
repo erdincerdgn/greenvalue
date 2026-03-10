@@ -99,9 +99,9 @@ class YOLO11Interface:
         try:
             # Call existing YOLO11 analysis endpoint
             with open(image_path, 'rb') as img_file:
-                files = {'image': img_file}
+                files = {'file': (Path(image_path).name, img_file, 'image/jpeg')}
                 response = requests.post(
-                    f"{self.cv_service_url}/analyze/property",
+                    f"{self.cv_service_url}/api/v1/analyze/upload",
                     files=files,
                     timeout=30
                 )
