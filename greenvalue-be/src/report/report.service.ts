@@ -84,10 +84,6 @@ export class ReportService {
         return this._toResponse(report);
     }
 
-    // ──────────────────────────────────────────────
-    // Process Report (called by BullMQ worker)
-    // ──────────────────────────────────────────────
-
     async processReportJob(data: {
         analysisId: string;
         userId: string;
@@ -107,11 +103,11 @@ export class ReportService {
                 return;
             }
 
-            // Call AI Engine to generate the report via gRPC/HTTP
+            
             const reportType = (report as any).reportType || 'FULL_IVS';
             const aiResult = await this.aiProxy.generateReport({
                 analysisId: data.analysisId,
-                format: reportType,          // Pass report type for AI engine mapping
+                format: reportType,          
                 includeRenovations: true,
             });
 
@@ -121,7 +117,7 @@ export class ReportService {
 
             const fileKey = aiResult.fileKey || `pdf-reports/${report.propertyId}/${report.id}.pdf`;
 
-            // Get file size — prefer value from AI proxy (it already uploaded the file)
+            
             let fileSize: number | null = (aiResult as any).fileSize ?? null;
             if (!fileSize) {
                 try {
