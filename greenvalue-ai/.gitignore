@@ -28,6 +28,7 @@ yarn-error.log*
 *.iml
 
 # Environment
+.env.example
 .env
 .env.local
 .env.*.local

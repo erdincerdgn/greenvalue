@@ -1,117 +1,71 @@
 greenvalue-ai/infrastructure/qdrant/knowledge_base/
 
-# Dependency directories
+# ==========================================
+# Proje .gitignore Dosyası
+# ==========================================
+
+# 1. Güvenlik, SSL ve Kimlik Bilgileri (Kritik)
+.env
+.env.*
+*.pem
+*.key
+*.crt
+infrastructure/nginx/ssl/
+secrets/
+*credentials.json
+
+# 2. Veritabanı ve Vektör Arama (RAG / Qdrant)
+*.db
+*.sqlite3
+data/
+knowledge_base/
+greenvalue-ai/infrastructure/qdrant/knowledge_base/
+
+# 3. Yapay Zeka / Model Dosyaları
+*.pt
+*.onnx
+models/
+weights/
+
+# 4. Log Dosyaları ve Test Çıktıları
+*.log
+test_output.log
+ai_output.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 5. Node.js ve Derleme Çıktıları
 node_modules/
 jspm_packages/
-
-# Build outputs
 dist/
 build/
 out/
 .next/
 
-# Python environments & cache
+# 6. Python Ortamı ve Cache
 venv/
 .venv/
-__pycache__/
-.ruff_cache/
-
-# Environment variables
-.env
-.env.local
-
-# Logs
-*.log
-npm-debug.log*
-
-# OS related
-.DS_Store
-Thumbs.db
-
-*.db
-*.json
-*.log
-data/
-
-# Veritabanları ve Loglar
-*.db
-*.json
-*.log
-data/
-knowledge_base/
-
-# Güvenlik ve SSL (KESİNLİKLE GİTMEMELİ)
-*.pem
-*.key
-infrastructure/nginx/ssl/
-
-# Sistem ve Geçici Dosyalar
-.DS_Store
-__pycache__/
-*.pyc
-
-# Güvenlik (Kritik - Kesinlikle gitmemeli)
-*.pem
-*.key
-infrastructure/nginx/ssl/
-
-# Veritabanı ve Hafıza
-*.db
-*.sqlite3
-data/
-knowledge_base/
-
-# Python ve Derleme Dosyaları
-__pycache__/
-*.pyc
-*.pyo
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
-
-# Sistem Dosyaları
-.DS_Store
-.idea/
-.vscode/
-
-# Güvenlik ve SSL (Kesinlikle gitmemeli)
-*.pem
-*.key
-infrastructure/nginx/ssl/
-
-# Veritabanları ve Geçici Veriler
-*.db
-*.json
-data/
-knowledge_base/
-__pycache__/
-
-# Test ve Geçici Çıktılar
-test_output.log
-ai_output.log
-*.log
-
-# IDE Ayarları
-.vscode/
-.idea/
-
-# Python bytecode & cache
 __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
 
-# Local configuration (Kişisel ayarlar)
-.vscode/
-.idea/
-*.swp
-*.bak
-
-# Media & Temporary files
+# 7. Medya, Görüntü İşleme Çıktıları ve Geçici Dosyalar
 *.png
 *.jpg
 *.jpeg
 *.gif
-test_output.log
-ai_output.log
+*.mp4
+*.swp
+*.bak
+tmp/
+temp/
+
+# 8. İşletim Sistemi ve IDE Ayarları
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
