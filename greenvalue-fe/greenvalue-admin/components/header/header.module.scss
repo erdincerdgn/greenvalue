@@ -1,0 +1,42 @@
+.header {
+    z-index: 100;
+    background: #FFF;
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.15);
+    left: 268px;
+    right: 0;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 30px 0 20px;
+}
+
+.username {
+    color: #000;
+
+    /* Body-16-Strong */
+    font-family: "Lay Grotesk";
+    font-size: 16px !important;
+    font-style: normal;
+    font-weight: 500 !important;
+    line-height: normal !important;
+}
+
+.role {
+    color: var(--black-80, rgba(0, 0, 0, 0.80));
+    font-family: "Lay Grotesk";
+    font-size: 10px !important;
+    font-style: normal;
+    font-weight: 400 !important;
+    line-height: 100% !important;
+    letter-spacing: 0.1px !important;
+}
+
+.pageTitle {
+    color: var(--black-80, rgba(0, 0, 0, 0.80));
+    font-feature-settings: 'liga' off, 'clig' off;
+    font-family: "Lay Grotesk";
+    font-size: 36px !important;
+    font-style: normal;
+    font-weight: 600 !important;
+    line-height: 24px !important;
+    /* 66.667% */
+}
