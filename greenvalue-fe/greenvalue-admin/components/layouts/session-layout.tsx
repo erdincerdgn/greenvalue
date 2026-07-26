@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Header } from '../header/header';
-import { Navbar } from '../navbar/Navbar';
+import { Navbar } from '../navbar/navbar';
 
 const NAVBAR_WIDTH = 268;
 const HEADER_HEIGHT = 70;

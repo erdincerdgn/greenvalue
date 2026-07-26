@@ -16,7 +16,7 @@ module.exports = withBundleAnalyzer({
   reactStrictMode: true,
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-    NEXTAUTH_SECRET: process.env.NEXT_AUTH_SECRET,
+    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
     NEXT_PUBLIC_URL: process.env.NEXT_PUBLIC_URL,
   },
   eslint: {
